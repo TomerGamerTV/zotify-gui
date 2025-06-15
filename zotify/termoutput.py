@@ -133,7 +133,7 @@ class Printer:
         Printer.print(PrintChannel.MANDATORY, "\n" +\
         "###   WARNING: " + ("CONFIG" if CONFIG else "ARGUMENT") + f" `{option_string}` IS DEPRECIATED, IGNORING   ###\n" +\
         "###   THIS WILL BE REMOVED IN FUTURE VERSIONS   ###\n" +\
-        f"###   {help_msg}   ###\n" if  help_msg else "")
+        f"###   {help_msg}   ###\n" if  help_msg else "\n")
     
     @staticmethod
     def clear() -> None:

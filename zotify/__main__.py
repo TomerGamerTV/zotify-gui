@@ -36,9 +36,7 @@ def main():
                         action='version',
                         version=f'Zotify {__version__}',
                         help='Show the version of Zotify')
-    parser.add_argument('-ns', '--no-splash',
-                        action='store_true',
-                        help='Suppress the splash screen when loading')
+    
     parser.add_argument('-c', '--config', '--config-location',
                         type=str,
                         dest='config_location',
@@ -51,10 +49,16 @@ def main():
                         type=str,
                         dest='token',
                         help='Authentication token')
+    
+    parser.add_argument('-ns', '--no-splash',
+                        action='store_true',
+                        help='Suppress the splash screen when loading')
     parser.add_argument('--debug',
-                        action='store_true')
+                        action='store_true',
+                        help='Enable debug mode, prints extra information and creates a `config_DEBUG.json` file')
     parser.add_argument('--update-config',
-                        action='store_true')
+                        action='store_true',
+                        help='Updates the `config.json` file while keeping all current settings unchanged')
     
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('urls',
