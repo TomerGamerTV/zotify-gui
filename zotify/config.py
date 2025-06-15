@@ -139,7 +139,7 @@ class Config:
             if cls.Values[DEBUG] == False: del cls.Values[DEBUG]
             with open(full_config_path, 'w', encoding='utf-8') as config_file:
                 json.dump(cls.get_default_json(), config_file, indent=4)
-            Printer.print(PrintChannel.MANDATORY, f"config.json saved to {full_config_path.stem}\n")
+            Printer.print(PrintChannel.MANDATORY, f"###   config.json saved to {full_config_path.resolve().parent}   ###\n")
         else:
             with open(full_config_path, encoding='utf-8') as config_file:
                 jsonvalues: dict[str, dict[str, Any]] = json.load(config_file)
@@ -156,10 +156,10 @@ class Config:
         # Standardize config.json if debugging or refreshing 
         if cls.debug() or args.update_config:
             if cls.debug() and not full_config_path.name.endswith("_DEBUG.json"):
-                full_config_path = Path(full_config_path.stem + "_DEBUG.json")
+                full_config_path = full_config_path.parent / (full_config_path.stem + "_DEBUG.json")
             with open(full_config_path, 'w' if full_config_path.exists() else 'x', encoding='utf-8') as debug_file:
                 json.dump(cls.parse_config_jsonstr(), debug_file, indent=4)
-            Printer.print(PrintChannel.MANDATORY, f"{full_config_path.name} saved to {full_config_path.stem}\n")
+            Printer.print(PrintChannel.MANDATORY, f"###   {full_config_path.name} saved to {full_config_path.resolve().parent}   ###\n")
         
         # Override config from commandline arguments
         for key in CONFIG_VALUES:

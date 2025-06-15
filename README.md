@@ -92,7 +92,7 @@ Set arguments in the commandline like this: `-ie False` or `--codec mp3`. Wrap c
 | `SAVE_CREDENTIALS`           | `--save-credentials`                | Whether login credentials should be saved                                    | True                      |
 | `CREDENTIALS_LOCATION`       | `--creds`, `--credentials-location` | Directory containing credentials.json                    | See [Path Option Parser](#path-option-parser) |
 
-| Download Options             | Command Line Config Flag            | Description                                                                  | Default Value             |
+| File Options                 | Command Line Config Flag            | Description                                                                  | Default Value             |
 |------------------------------|-------------------------------------|------------------------------------------------------------------------------|---------------------------|
 | `OUTPUT`                     | `--output`                          | Master output file pattern (overwrites all others)       | See [Output Format Examples](#output-formats) |
 | `OUTPUT_PLAYLIST`            | `-op`, `--output-playlist`          | Output file pattern for playlists                        | See [Output Format Examples](#example-values) |
