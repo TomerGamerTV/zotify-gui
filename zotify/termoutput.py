@@ -17,6 +17,9 @@ DOWN_ONE_LINE = "\033[B"
 START_OF_PREV_LINE = "\033[F"
 CLEAR_LINE = "\033[K"
 
+ACTIVE_LOADER: list[Loader] = []
+ACTIVE_PBARS: list[tqdm] = []
+
 
 class PrintChannel(Enum):
     MANDATORY = "MANDATORY"
@@ -53,59 +56,41 @@ class Printer:
                 sleep(ACTIVE_LOADER[0].timeout*2) #guarantee it appears
     
     @staticmethod
+    def loader(channel: PrintChannel, msg: str) -> None:
+        Printer.print(channel, START_OF_PREV_LINE*2 + msg, loader=True)
+    
+    @staticmethod
     def debug(msg: str) -> None:
         Printer.print(PrintChannel.DEBUG, msg)
     
     @staticmethod
-    def print_loader(channel: PrintChannel, msg: str) -> None:
-        if channel != PrintChannel.MANDATORY:
-            from zotify.zotify import Zotify
-        if channel == PrintChannel.MANDATORY or Zotify.CONFIG.get(channel.value):
-            Printer.print(channel, START_OF_PREV_LINE*2 + msg, loader=True)
-    
-    @staticmethod
-    def pbar(iterable=None, desc=None, total=None, unit='it', 
-            disable=False, unit_scale=False, unit_divisor=1000, pos=1) -> tqdm:
-        if iterable and len(iterable) == 1: disable = True # minimize clutter
-        new_pbar = tqdm(iterable=iterable, desc=desc, total=total, disable=disable, position=pos, 
-                        unit=unit, unit_scale=unit_scale, unit_divisor=unit_divisor, leave=False)
-        if new_pbar.disable: new_pbar.pos = -pos
-        return new_pbar
-    
-    @staticmethod
-    def refresh_all_pbars(pbar_stack: list[tqdm] | None, skip_pop: bool = False) -> None:
-        for pbar in pbar_stack:
-            pbar.refresh()
-        
-        if not skip_pop and pbar_stack:
-            if pbar_stack[-1].n == pbar_stack[-1].total: pbar_stack.pop()
-    
-    @staticmethod
-    def pbar_position_handler(default_pos: int, pbar_stack: list[tqdm] | None) -> tuple[int, list[tqdm]]:
-        pos = default_pos
-        if pbar_stack is not None:
-            pos = -pbar_stack[-1].pos + (0 if pbar_stack[-1].disable else -2)
-        else:
-            # next bar must be appended to this empty list
-            pbar_stack = []
-        
-        return pos, pbar_stack
-    
-    @staticmethod
-    def json_dump_printer(obj: dict) -> None:
+    def json_dump(obj: dict, channel: PrintChannel = PrintChannel.ERRORS) -> None:
         try:
             columns, _ = get_terminal_size()
         except OSError:
             columns = 80
-        Printer.print(PrintChannel.ERRORS, "#" * columns)
-        Printer.print(PrintChannel.ERRORS, json.dumps(obj, indent=2))
-        Printer.print(PrintChannel.ERRORS, "#" * columns + "\n")
+        if AVAIL_MARKETS in obj:
+            obj[AVAIL_MARKETS] = "REMOVED FOR BREVITY"
+        if ITEMS in obj and AVAIL_MARKETS in obj[ITEMS][0]:
+            for item in obj[ITEMS]:
+                item[AVAIL_MARKETS] = "REMOVED FOR BREVITY"
+        Printer.print(channel, "#" * columns)
+        Printer.print(channel, json.dumps(obj, indent=2))
+        Printer.print(channel, "#" * columns + "\n\n")
     
     @staticmethod
-    def traceback_printer(e: Exception) -> None:
+    def traceback(e: Exception) -> None:
         Printer.print(PrintChannel.ERRORS, "\n")
         Printer.print(PrintChannel.ERRORS, "".join(TracebackException.from_exception(e).format()))
         Printer.print(PrintChannel.ERRORS, "\n")
+    
+    @staticmethod
+    def depreciated_warning(option_string: str, help_msg: str = None, CONFIG = True) -> None:
+        Printer.print(PrintChannel.MANDATORY, "\n" +\
+        "###   WARNING: " + ("CONFIG" if CONFIG else "ARGUMENT") + f" `{option_string}` IS DEPRECIATED, IGNORING   ###\n" +\
+        "###   THIS WILL BE REMOVED IN FUTURE VERSIONS   ###\n" +\
+        f"###   {help_msg}   ###\n" if  help_msg else "\n")
+    
     
     @staticmethod
     def splash() -> None:
@@ -129,21 +114,46 @@ class Printer:
         )
     
     @staticmethod
-    def depreciated_warning(option_string: str, help_msg: str = None, CONFIG = True) -> None:
-        Printer.print(PrintChannel.MANDATORY, "\n" +\
-        "###   WARNING: " + ("CONFIG" if CONFIG else "ARGUMENT") + f" `{option_string}` IS DEPRECIATED, IGNORING   ###\n" +\
-        "###   THIS WILL BE REMOVED IN FUTURE VERSIONS   ###\n" +\
-        f"###   {help_msg}   ###\n" if  help_msg else "\n")
-    
-    @staticmethod
     def clear() -> None:
         """ Clear the console window """
         if platform.system() == WINDOWS_SYSTEM:
             system('cls')
         else:
             system('clear')
+    
+    
+    @staticmethod
+    def pbar(iterable=None, desc=None, total=None, unit='it', 
+            disable=False, unit_scale=False, unit_divisor=1000, pos=1) -> tqdm:
+        if iterable and len(iterable) == 1 and len(ACTIVE_PBARS) > 0:
+            disable = True # minimize clutter
+        new_pbar = tqdm(iterable=iterable, desc=desc, total=total, disable=disable, position=pos, 
+                        unit=unit, unit_scale=unit_scale, unit_divisor=unit_divisor, leave=False)
+        if new_pbar.disable: new_pbar.pos = -pos
+        if not new_pbar.disable: ACTIVE_PBARS.append(new_pbar)
+        return new_pbar
+    
+    @staticmethod
+    def refresh_all_pbars(pbar_stack: list[tqdm] | None, skip_pop: bool = False) -> None:
+        for pbar in pbar_stack:
+            pbar.refresh()
+        
+        if not skip_pop and pbar_stack:
+            if pbar_stack[-1].n == pbar_stack[-1].total: 
+                pbar_stack.pop()
+                if not pbar_stack[-1].disable: ACTIVE_PBARS.pop()
+    
+    @staticmethod
+    def pbar_position_handler(default_pos: int, pbar_stack: list[tqdm] | None) -> tuple[int, list[tqdm]]:
+        pos = default_pos
+        if pbar_stack is not None:
+            pos = -pbar_stack[-1].pos + (0 if pbar_stack[-1].disable else -2)
+        else:
+            # next bar must be appended to this empty list
+            pbar_stack = []
+        
+        return pos, pbar_stack
 
-ACTIVE_LOADER: list[Loader] = []
 
 class Loader:
     """Busy symbol.
@@ -196,7 +206,7 @@ class Loader:
             if self.done:
                 break
             elif not self.paused:
-                Printer.print_loader(self.channel, f"\t{c} {self.desc}")
+                Printer.loader(self.channel, f"\t{c} {self.desc}")
             sleep(self.timeout)
     
     def __enter__(self):

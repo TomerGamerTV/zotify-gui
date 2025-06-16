@@ -1,17 +1,18 @@
-from zotify.const import ALBUM_URL, ARTIST_URL, ITEMS, ARTISTS, NAME, ID, DISC_NUMBER
-from zotify.termoutput import Printer
+from zotify.const import ALBUM_URL, ARTIST_URL, ITEMS, ARTISTS, NAME, ID, DISC_NUMBER, ALBUM_TYPE, COMPILATION, AVAIL_MARKETS
+from zotify.termoutput import Printer, PrintChannel
 from zotify.track import download_track
 from zotify.utils import fix_filename
 from zotify.zotify import Zotify
 
 
-def get_album_info(album_id):
+def get_album_info(album_id: str) -> tuple[str, str, list[dict], int, bool]:
     """ Returns album info and tracklist"""
     
     (raw, resp) = Zotify.invoke_url(f'{ALBUM_URL}/{album_id}')
     
     album_name = fix_filename(resp[NAME])
     album_artist = resp[ARTISTS][0][NAME]
+    compilation = resp[ALBUM_TYPE] == COMPILATION
     
     songs = []
     offset = 0
@@ -24,9 +25,11 @@ def get_album_info(album_id):
         if len(resp[ITEMS]) < limit:
             break
     
+    Printer.json_dump(resp, PrintChannel.DEBUG)
+    
     total_discs = songs[-1][DISC_NUMBER]
     
-    return album_name, album_artist, songs, total_discs
+    return album_name, album_artist, songs, total_discs, compilation
 
 
 def get_artist_albums(artist_id):
@@ -57,10 +60,15 @@ def download_artist_albums(artist, pbar_stack: list | None = None):
         Printer.refresh_all_pbars(pbar_stack)
 
 
-def download_album(album, pbar_stack: list | None = None, M3U8_bypass: str | None = None):
+def download_album(album_id: str, pbar_stack: list | None = None, M3U8_bypass: str | None = None) -> bool:
     """ Downloads songs from an album """
-    album_name, album_artist, tracks, total_discs = get_album_info(album)
+    album_name, album_artist, tracks, total_discs, compilation = get_album_info(album_id)
     char_num = max({len(str(len(tracks))), 2})
+    
+    if Zotify.CONFIG.get_skip_comp_albums() and compilation:
+        Printer.print(PrintChannel.SKIPS, '###   SKIPPING:  ALBUM IS A COMPILATION   ###\n' +\
+                                         f'###   Album_Name: {album_name} - Album_ID: {album_id}   ###')
+        return False
     
     pos, pbar_stack = Printer.pbar_position_handler(3, pbar_stack)
     pbar = Printer.pbar(tracks, unit='song', pos=pos, 
@@ -72,7 +80,7 @@ def download_album(album, pbar_stack: list | None = None, M3U8_bypass: str | Non
         extra_keys={'album_num': str(n).zfill(char_num), 
                     'album_artist': album_artist, 
                     'album': album_name, 
-                    'album_id': album,
+                    'album_id': album_id,
                     'total_discs': total_discs}
         
         if M3U8_bypass is not None:
@@ -83,3 +91,4 @@ def download_album(album, pbar_stack: list | None = None, M3U8_bypass: str | Non
                        pbar_stack)
         pbar.set_description(track[NAME])
         Printer.refresh_all_pbars(pbar_stack)
+    return True

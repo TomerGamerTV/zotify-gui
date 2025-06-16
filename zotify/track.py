@@ -160,7 +160,9 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
             if album_id and total_tracks and int(total_tracks) > 1:
                 from zotify.album import download_album
                 # uses album OUTPUT template for filename formatting, but handle m3u8 as if only this track was downloaded
-                return download_album(album_id, pbar_stack, M3U8_bypass=(mode, track_id))
+                download_album(album_id, pbar_stack, M3U8_bypass=(mode, track_id))
+                Printer.print(PrintChannel.MANDATORY, "\n")
+                return
     
     if extra_keys is None:
         extra_keys = {}
@@ -242,8 +244,8 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
             prepare_download_loader.stop()
         Printer.print(PrintChannel.ERRORS, '###   ERROR:  SKIPPING SONG - FAILED TO QUERY METADATA   ###\n' +\
                                           f'###   Track_ID: {track_id}   ###')
-        Printer.json_dump_printer(extra_keys)
-        Printer.traceback_printer(e)
+        Printer.json_dump(extra_keys)
+        Printer.traceback(e)
     
     else:
         try:
@@ -316,7 +318,7 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                     except Exception as e:
                         Printer.print(PrintChannel.ERRORS, "###   ERROR:  FAILED TO WRITE METADATA   ###\n" +\
                                                            "###   Ensure FFMPEG is installed and added to your PATH   ###")
-                        Printer.traceback_printer(e)
+                        Printer.traceback(e)
                     
                     if filename_temp != filename:
                         if Path(filename).exists():
@@ -342,8 +344,8 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
         except Exception as e:
             Printer.print(PrintChannel.ERRORS, '###   ERROR:  SKIPPING SONG - GENERAL DOWNLOAD ERROR   ###\n' +\
                                               f'###   Track_Name: {song_name} - Track_ID: {track_id}   ###')
-            Printer.json_dump_printer(extra_keys)
-            Printer.traceback_printer(e)
+            Printer.json_dump(extra_keys)
+            Printer.traceback(e)
             if Path(filename_temp).exists():
                 Path(filename_temp).unlink()
         

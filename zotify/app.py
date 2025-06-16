@@ -309,7 +309,7 @@ def client(args: Namespace) -> None:
         for song in pbar:
             if not song[TRACK][NAME] or not song[TRACK][ID]:
                 Printer.print(PrintChannel.SKIPS, '###   SKIPPING:  SONG NO LONGER EXISTS   ###\n' +\
-                                                 f'###   Track_Name: {song[TRACK][NAME]} - Track_Name: {song[TRACK][ID]}   ###')
+                                                 f'###   Track_Name: {song[TRACK][NAME]} - Track_ID: {song[TRACK][ID]}   ###')
             else:
                 download_track('liked', song[TRACK][ID], None, pbar_stack)
                 pbar.set_description(song[TRACK][NAME])

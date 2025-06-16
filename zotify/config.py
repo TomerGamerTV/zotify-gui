@@ -39,6 +39,7 @@ CONFIG_VALUES = {
     DOWNLOAD_REAL_TIME:         { 'default': 'False',                   'type': bool,   'arg': ('-rt', '--download-real-time'            ,) },
     TEMP_DOWNLOAD_DIR:          { 'default': '',                        'type': str,    'arg': ('-td', '--temp-download-dir'             ,) },
     DOWNLOAD_PARENT_ALBUM:      { 'default': 'False',                   'type': bool,   'arg': ('--download-parent-album'                ,) },
+    NO_COMPILATION_ALBUMS:      { 'default': 'False',                   'type': bool,   'arg': ('--no-compilation-albums'                ,) },
     
     # Encoding Options
     DOWNLOAD_FORMAT:            { 'default': 'copy',                    'type': str,    'arg': ('--codec', '--download-format'           ,) },
@@ -478,3 +479,7 @@ class Config:
     @classmethod
     def get_oauth_addresses(cls) -> tuple[str, str]:
         return cls.get(REDIRECT_ADDRESS), cls.get(OAUTH_ADDRESS)
+    
+    @classmethod
+    def get_skip_comp_albums(cls) -> bool:
+        return cls.get(NO_COMPILATION_ALBUMS)
