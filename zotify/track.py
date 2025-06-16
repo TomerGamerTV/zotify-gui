@@ -209,9 +209,6 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
         
         check_name = Path(filename).is_file() and Path(filename).stat().st_size
         check_local = scraped_song_id in get_directory_song_ids(filedir)
-        if Zotify.CONFIG.get_disable_directory_archives():
-            check_local = not Zotify.CONFIG.get_skip_existing() or not Zotify.CONFIG.get_skip_previously_downloaded()
-            # avoids overwrite case only when both "safety switches" are on
         check_all_time = scraped_song_id in get_archived_song_ids()
         Printer.debug("Duplicate Check\n" +\
                      f"File Already Exists: {check_name}\n" +\
@@ -219,9 +216,10 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                      f"song_id in Global Archive: {check_all_time}")
         
         # same filename, not same song_id, rename the newcomer
-        if not check_local and check_name:
+        if check_name and not check_local and not Zotify.CONFIG.get_disable_directory_archives():
             c = len([file for file in Path(filedir).iterdir() if file.match(filename.stem + "*")])
             filename = PurePath(filedir).joinpath(f'{filename.stem}_{c}{filename.suffix}')
+            check_name = False # new filename guaranteed to be unique
         
         liked_m3u8 = child_request_mode == "liked" and Zotify.CONFIG.get_liked_songs_archive_m3u8()
         if Zotify.CONFIG.get_export_m3u8() and track_id == child_request_id:
@@ -253,7 +251,11 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                 prepare_download_loader.stop()
                 Printer.print(PrintChannel.SKIPS, f'###   SKIPPING:  "{song_name}" (TRACK IS UNAVAILABLE)   ###')
             else:
-                if check_local and check_name and Zotify.CONFIG.get_skip_existing() and not Zotify.CONFIG.get_disable_directory_archives():
+                if check_name and Zotify.CONFIG.get_skip_existing() and Zotify.CONFIG.get_disable_directory_archives():
+                    prepare_download_loader.stop()
+                    Printer.print(PrintChannel.SKIPS, f'###   SKIPPING:  "{filename}" (FILE ALREADY EXISTS)   ###')
+                
+                elif check_local and Zotify.CONFIG.get_skip_existing() and not Zotify.CONFIG.get_disable_directory_archives():
                     prepare_download_loader.stop()
                     Printer.print(PrintChannel.SKIPS, f'###   SKIPPING:  "{song_name}" (TRACK ALREADY EXISTS)   ###')
                 

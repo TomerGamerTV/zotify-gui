@@ -20,7 +20,7 @@ def get_archived_song_ids() -> list[str]:
     ids = []
     archive_path = Zotify.CONFIG.get_song_archive_location()
     
-    if Path(archive_path).exists():
+    if Path(archive_path).exists() and not Zotify.CONFIG.get_disable_song_archive():
         with open(archive_path, 'r', encoding='utf-8') as f:
             ids = [line.strip().split('\t')[0] for line in f.readlines()]
     
