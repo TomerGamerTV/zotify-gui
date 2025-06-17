@@ -17,7 +17,7 @@ from zotify.utils import fix_filename, set_audio_tags, set_music_thumbnail, crea
 from zotify.zotify import Zotify
 
 
-def get_song_info(song_id) -> tuple[list[str], list[Any], str, str, Any, Any, Any, Any, Any, Any, Any, Any, Any, int]:
+def get_song_info(song_id) -> tuple[list[str], list[Any], str, str, str, Any, Any, Any, Any, Any, Any, Any, Any, int]:
     """ Retrieves metadata for downloaded songs """
     with Loader(PrintChannel.PROGRESS_INFO, "Fetching track information..."):
         (raw, info) = Zotify.invoke_url(f'{TRACKS_URL}?ids={song_id}&market=from_token')
@@ -177,6 +177,19 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
         total_discs = None
         if "total_discs" in extra_keys:
             total_discs = extra_keys["total_discs"]
+        
+        if Zotify.CONFIG.get_regex_track():
+            regex_match = Zotify.CONFIG.get_regex_track().search(name)
+            Printer.debug("Regex Check\n" +\
+                     f"Pattern: {Zotify.CONFIG.get_regex_track().pattern}\n" +\
+                     f"Song Name: {name}\n" +\
+                     f"Match Object: {regex_match}"+"\n"*3)
+            if regex_match:
+                Printer.print(PrintChannel.SKIPS, '###   SKIPPING:  TRACK MATCHES REGEX FILTER   ###\n' +\
+                                                 f'###   Track_Name: {name} - Track_ID: {track_id}   ###\n'+\
+                                                (f'###   Regex Groups: {regex_match.groupdict()}   ###\n' if regex_match.groups() else ""))
+                Printer.print(PrintChannel.MANDATORY, "\n")
+                return
         
         prepare_download_loader = Loader(PrintChannel.PROGRESS_INFO, "Preparing download...")
         prepare_download_loader.start()

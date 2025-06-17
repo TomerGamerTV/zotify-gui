@@ -25,7 +25,7 @@ def get_album_info(album_id: str) -> tuple[str, str, list[dict], int, bool]:
         if len(resp[ITEMS]) < limit:
             break
     
-    Printer.json_dump(resp, PrintChannel.DEBUG)
+    # Printer.json_dump(resp, PrintChannel.DEBUG)
     
     total_discs = songs[-1][DISC_NUMBER]
     
@@ -68,7 +68,16 @@ def download_album(album_id: str, pbar_stack: list | None = None, M3U8_bypass: s
     if Zotify.CONFIG.get_skip_comp_albums() and compilation:
         Printer.print(PrintChannel.SKIPS, '###   SKIPPING:  ALBUM IS A COMPILATION   ###\n' +\
                                          f'###   Album_Name: {album_name} - Album_ID: {album_id}   ###')
+        Printer.print(PrintChannel.MANDATORY, "\n")
         return False
+    elif Zotify.CONFIG.get_regex_album():
+        regex_match = Zotify.CONFIG.get_regex_album().search(album_name)
+        if regex_match:
+            Printer.print(PrintChannel.SKIPS, '###   SKIPPING:  ALBUM MATCHES REGEX FILTER   ###\n' +\
+                                             f'###   Album_Name: {album_name} - Album_ID: {album_id}   ###\n'+\
+                                            (f'###   Regex Groups: {regex_match.groupdict()}   ###\n' if regex_match.groups() else ""))
+            Printer.print(PrintChannel.MANDATORY, "\n")
+            return False
     
     pos, pbar_stack = Printer.pbar_position_handler(3, pbar_stack)
     pbar = Printer.pbar(tracks, unit='song', pos=pos, 

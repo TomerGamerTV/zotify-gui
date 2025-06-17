@@ -1,7 +1,8 @@
 import json
 import sys
+import re
 from pathlib import Path, PurePath
-from typing import Any
+from typing import Any, Callable
 
 from zotify.const import *
 from zotify.termoutput import Printer, PrintChannel
@@ -40,6 +41,12 @@ CONFIG_VALUES = {
     TEMP_DOWNLOAD_DIR:          { 'default': '',                        'type': str,    'arg': ('-td', '--temp-download-dir'             ,) },
     DOWNLOAD_PARENT_ALBUM:      { 'default': 'False',                   'type': bool,   'arg': ('--download-parent-album'                ,) },
     NO_COMPILATION_ALBUMS:      { 'default': 'False',                   'type': bool,   'arg': ('--no-compilation-albums'                ,) },
+    
+    # Regex Options
+    REGEX_ENABLED:              { 'default': 'False',                   'type': bool,   'arg': ('--regex-enabled'                        ,) },
+    REGEX_TRACK_SKIP:           { 'default': '',                        'type': str,    'arg': ('--regex-track-skip'                     ,) },
+    REGEX_EPISODE_SKIP:         { 'default': '',                        'type': str,    'arg': ('--regex-episode-skip'                   ,) },
+    REGEX_ALBUM_SKIP:           { 'default': '',                        'type': str,    'arg': ('--regex-album-skip'                     ,) },
     
     # Encoding Options
     DOWNLOAD_FORMAT:            { 'default': 'copy',                    'type': str,    'arg': ('--codec', '--download-format'           ,) },
@@ -168,6 +175,13 @@ class Config:
                 # Printer.print(f"{key} {cls.Values[key]} -> {cls.parse_arg_value(key, vars(args)[key.lower()])}")
                 cls.Values[key] = cls.parse_arg_value(key, vars(args)[key.lower()])
         
+        # Confirm regex patterns
+        if cls.debug() and cls.get_regex_enabled():
+            for mode in ["Track", "Episode", "Album"]:
+                regex_method: Callable[[None], None | re.Pattern] = getattr(cls, f"get_regex_{mode.lower()}")
+                if regex_method(): Printer.debug(f'###   {mode} Regex Filter:  r"{regex_method().pattern}"   ###')
+        
+        # Check no-splash
         if args.no_splash:
             cls.Values[PRINT_SPLASH] = False
     
@@ -483,3 +497,25 @@ class Config:
     @classmethod
     def get_skip_comp_albums(cls) -> bool:
         return cls.get(NO_COMPILATION_ALBUMS)
+    
+    @classmethod
+    def get_regex_enabled(cls) -> bool:
+        return cls.get(REGEX_ENABLED)
+    
+    @classmethod
+    def get_regex_album(cls) -> None | re.Pattern:
+        if not (cls.get_regex_enabled() and cls.get(REGEX_ALBUM_SKIP)):
+            return None
+        return re.compile(cls.get(REGEX_ALBUM_SKIP), re.I)
+    
+    @classmethod
+    def get_regex_track(cls) -> None | re.Pattern:
+        if not (cls.get_regex_enabled() and cls.get(REGEX_TRACK_SKIP)):
+            return None
+        return re.compile(cls.get(REGEX_TRACK_SKIP), re.I)
+ 
+    @classmethod
+    def get_regex_episode(cls) -> None | re.Pattern:
+        if not (cls.get_regex_enabled() and cls.get(REGEX_EPISODE_SKIP)):
+            return None
+        return re.compile(cls.get(REGEX_EPISODE_SKIP), re.I)

@@ -78,17 +78,24 @@ def download_show(show_id, pbar_stack: list | None = None):
 
 
 def download_episode(episode_id, pbar_stack: list | None = None) -> None:
-    podcast_name, duration_ms, episode_name = get_episode_info(episode_id)
     
     Printer.print(PrintChannel.MANDATORY, "\n")
-    prepare_download_loader = Loader(PrintChannel.PROGRESS_INFO, "Preparing download...")
-    prepare_download_loader.start()
+    
+    podcast_name, duration_ms, episode_name = get_episode_info(episode_id)
     
     if podcast_name is None or episode_name is None or duration_ms is None:
-        prepare_download_loader.stop()
         Printer.print(PrintChannel.ERRORS, '###   ERROR:  SKIPPING EPISODE - FAILED TO QUERY METADATA   ###\n' +\
                                           f'###   Episode_ID: {str(episode_id)}   ###')
+    elif Zotify.CONFIG.get_regex_episode():
+        regex_match = Zotify.CONFIG.get_regex_episode().search(episode_name)
+        if regex_match:
+            Printer.print(PrintChannel.SKIPS, '###   SKIPPING:  EPISODE MATCHES REGEX FILTER   ###\n' +\
+                                             f'###   Episode_Name: {episode_name} - Episode_ID: {episode_id}   ###\n'+\
+                                            (f'###   Regex Groups: {regex_match.groupdict()}   ###\n' if regex_match.groups() else ""))
     else:
+        prepare_download_loader = Loader(PrintChannel.PROGRESS_INFO, "Preparing download...")
+        prepare_download_loader.start()
+        
         filename = podcast_name + ' - ' + episode_name
         extra_paths = podcast_name + '/'
         
@@ -118,6 +125,7 @@ def download_episode(episode_id, pbar_stack: list | None = None) -> None:
                     prepare_download_loader.stop()
                     Printer.print(PrintChannel.SKIPS, f'###   SKIPPING:  "{podcast_name} - {episode_name}" (EPISODE ALREADY EXISTS)   ###')
                     return
+                
                 prepare_download_loader.stop()
                 time_start = time.time()
                 downloaded = 0

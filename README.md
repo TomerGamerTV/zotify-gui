@@ -84,22 +84,22 @@ If an artist's URL is given, all albums by the specified artist will be download
 </summary>
 
 All options can be set via the commandline or in a [config.json file](#configuration-files). Commandline arguments take priority over config.json arguments.  
-Set arguments in the commandline like this: `-ie False` or `--codec mp3`. Wrap commandline arguments containing spaces or non-alphanumeric characters (weird symbols) with quotes like this: `--output-liked-songs "Liked Songs/{song_name}"`
+Set arguments in the commandline like this: `-ie False` or `--codec mp3`. Wrap commandline arguments containing spaces or non-alphanumeric characters (weird symbols) with quotes like this: `--output-liked-songs "Liked Songs/{song_name}"`. Make sure to escape any backslashes (`\`) to prevent string-escape errors.
 
 | Main Options                 | Command Line Config Flag            | Description                                                                  | Default Value             |
 |------------------------------|-------------------------------------|------------------------------------------------------------------------------|---------------------------|
-| `ROOT_PATH`                  | `-rp`, `--root-path`                | Directory where music is saved (replaces "." in other path configs)          | `~/Music/Zotify Music`    |
+| `ROOT_PATH`                  | `-rp`, `--root-path`                | Directory where music is saved (replaces `.` in other path configs)          | `~/Music/Zotify Music`    |
 | `SAVE_CREDENTIALS`           | `--save-credentials`                | Whether login credentials should be saved                                    | True                      |
 | `CREDENTIALS_LOCATION`       | `--creds`, `--credentials-location` | Directory containing credentials.json                    | See [Path Option Parser](#path-option-parser) |
 
 | File Options                 | Command Line Config Flag            | Description                                                                  | Default Value             |
 |------------------------------|-------------------------------------|------------------------------------------------------------------------------|---------------------------|
-| `OUTPUT`                     | `--output`                          | Master output file pattern (overwrites all others)       | See [Output Format Examples](#output-formats) |
-| `OUTPUT_PLAYLIST`            | `-op`, `--output-playlist`          | Output file pattern for playlists                        | See [Output Format Examples](#example-values) |
-| `OUTPUT_PLAYLIST_EXT`        | `-oe`, `--output-ext-playlist`      | Output file pattern for extended playlists               | See [Output Format Examples](#example-values) |
-| `OUTPUT_LIKED_SONGS`         | `-ol`, `--output-liked-songs`       | Output file pattern for user's Liked Songs               | See [Output Format Examples](#example-values) |
-| `OUTPUT_SINGLE`              | `-os`, `--output-single`            | Output file pattern for single tracks                    | See [Output Format Examples](#example-values) |
-| `OUTPUT_ALBUM`               | `-oa`, `--output-album`             | Output file pattern for albums                           | See [Output Format Examples](#example-values) |
+| `OUTPUT`                     | `--output`                          | Master output file pattern (overwrites all others)    | See [Output Format Examples](#output-formatting) |
+| `OUTPUT_PLAYLIST`            | `-op`, `--output-playlist`          | Output file pattern for playlists                 | See [Output Format Examples](#example-output-values) |
+| `OUTPUT_PLAYLIST_EXT`        | `-oe`, `--output-ext-playlist`      | Output file pattern for extended playlists        | See [Output Format Examples](#example-output-values) |
+| `OUTPUT_LIKED_SONGS`         | `-ol`, `--output-liked-songs`       | Output file pattern for user's Liked Songs        | See [Output Format Examples](#example-output-values) |
+| `OUTPUT_SINGLE`              | `-os`, `--output-single`            | Output file pattern for single tracks             | See [Output Format Examples](#example-output-values) |
+| `OUTPUT_ALBUM`               | `-oa`, `--output-album`             | Output file pattern for albums                    | See [Output Format Examples](#example-output-values) |
 | `ROOT_PODCAST_PATH`          | `-rpp`, `--root-podcast-path`       | Directory where podcasts are saved                                           | `~/Music/Zotify Podcasts` |
 | `SPLIT_ALBUM_DISCS`          | `--split-album-discs`               | Saves each disk in its own folder                                            | False                     |
 | `MAX_FILENAME_LENGTH`        | `--max-filename-length`             | Maximum character length of filenames, truncated to fit, 0 meaning no limit  | 0                         |
@@ -111,6 +111,12 @@ Set arguments in the commandline like this: `-ie False` or `--codec mp3`. Wrap c
 | `TEMP_DOWNLOAD_DIR`          | `-td`, `--temp-download-dir`        | Directory where tracks are temporarily downloaded first, `""` meaning disabled           | `""`          |
 | `DOWNLOAD_PARENT_ALBUM`      | `--download-parent-album`           | Download a track's parent album, including itself (uses `OUTPUT_ALBUM` file pattern)     | False         |
 | `NO_COMPILATION_ALBUMS`      | `--no-compilation-albums`           | Skip downloading an album if API metadata labels it a compilation (not recommended)      | False         |
+
+| Regex Options                | Command Line Config Flag            | Description                                                                              | Default Value |
+|------------------------------|-------------------------------------|------------------------------------------------------------------------------------------|---------------|
+| `REGEX_ENABLED`              | `--regex-enabled`                   | Enable Regular Expression filtering on item titles                                       | False         |
+| `REGEX_TRACK_SKIP`           | `--regex-track-skip`                | Regex pattern for skipping tracks, `""` meaning disabled                                 | `""`          |
+| `REGEX_ALBUM_SKIP`           | `--regex-album-skip`                | Regex pattern for skipping albums, `""` meaning disabled                                 | `""`          |
 
 | Encoding Options             | Command Line Config Flag            | Description                                                                              | Default Value |
 |------------------------------|-------------------------------------|------------------------------------------------------------------------------------------|---------------|
@@ -202,7 +208,7 @@ The options `CREDENTIALS_LOCATION` and `SONG_ARCHIVE_LOCATION` use the following
 | MacOS           | `/Users/<USERNAME>/Library/Application Support/Zotify/` |
 | Linux           | `/home/<USERNAME>/.local/share/zotify/`                 |
 
-## Output Formats
+## Output Formatting
 
 With the option `OUTPUT` (or the commandline parameter `--output`) you can specify the pattern for the file structure of downloaded songs (not podcasts).  
 The value is relative to the `ROOT_PATH` directory and may contain the following placeholders:
@@ -223,7 +229,7 @@ The value is relative to the `ROOT_PATH` directory and may contain the following
 | `{playlist}`      | (only when downloading playlists) Name of the playlist       |
 | `{playlist_num}`  | (only when downloading playlists) Incrementing track number  |
 
-### Example Values
+### Example Output Values
 
 `OUTPUT_PLAYLIST`       :   `{playlist}/{artist}_{song_name}`
 
@@ -234,6 +240,16 @@ The value is relative to the `ROOT_PATH` directory and may contain the following
 `OUTPUT_SINGLE`         :   `{artist}/{album}/{artist}_{song_name}`
 
 `OUTPUT_ALBUM`          :   `{album_artist}/{album}/{album_num}_{artist}_{song_name}`
+
+## Regex Formatting
+
+With `REGEX_ENABLED` (or the commandline parameter `--regex-enabled`) and its child config options, you can specify a Regex pattern for the titles of different items (tracks, albums, playlists, etc.) to be filtered against. To understand the Regex language and build/test your own, see [regex101](https://regex101.com/). Make sure to escape any backslashes `\` used in the Regex, as a `config.json` will not accept lone backslashes. **All Regex patterns/matches are case-insensitive**.
+
+You can add multiple patterns into a single regex by chaining the "or" construction `|`, such as: `(:?<first pattern here>)|(:?<second pattern here>)|(:?<third pattern here>)`.
+
+### Example Regex Values
+
+Check for Live Performances   :   `^.*?\\(?(?:Live|Live (?:from|in|at) .*?)\\)?$`
 
 ## Docker Usage
 
