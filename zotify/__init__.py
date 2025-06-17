@@ -264,7 +264,7 @@ class OAuth:
         self.username = username
         self.port = 4381
         self.oauth_address = oauth_address if oauth_address else "0.0.0.0"
-        self.redirect_uri = f"http://{redirect_address if redirect_address else "127.0.0.1"}:{self.port}/login"
+        self.redirect_uri = f"http://{redirect_address if redirect_address else '127.0.0.1'}:{self.port}/login"
     
     def auth_interactive(self) -> str:
         """
