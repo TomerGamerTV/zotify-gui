@@ -149,7 +149,7 @@ Set arguments in the commandline like this: `-ie False` or `--codec mp3`. Wrap c
 |------------------------------|-------------------------------------|------------------------------------------------------------------------------------------|---------------|
 | `LANGUAGE`                   | `--language`                        | Language in which metadata/tags are requested                                            | en            |
 | `MD_DISC_TRACK_TOTALS`       | `--md-disc-track-totals`            | Whether track totals and disc totals should be saved in metadata                         | True          |
-| `MD_SAVE_GENRES`             | `--md-save-genres`                  | Whether genres should be saved in metadata                                               | False         |
+| `MD_SAVE_GENRES`             | `--md-save-genres`                  | Whether genres should be saved in metadata                                               | True          |
 | `MD_ALLGENRES`               | `--md-allgenres`                    | Save all relevant genres in metadata                                                     | False         |
 | `MD_GENREDELIMITER`          | `--md-genredelimiter`               | Delimiter character to split genres in metadata, use `""` if array-like tags desired     | `", "`        |
 | `MD_ARTISTDELIMITER`         | `--md-artistdelimiter`              | Delimiter character to split artists in metadata, use `""` if array-like tags desired    | `", "`        |

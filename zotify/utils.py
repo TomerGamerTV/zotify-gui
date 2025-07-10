@@ -175,7 +175,7 @@ def conv_genre_format(genres: list[str]) -> list[str] | str:
     """ Returns converted genre format """
     if not Zotify.CONFIG.get_all_genres():
         return genres[0]
-
+    
     if Zotify.CONFIG.get_genre_delimiter() == "":
         return genres
     else:

@@ -75,7 +75,7 @@ CONFIG_VALUES = {
     # Metadata Options
     LANGUAGE:                   { 'default': 'en',                      'type': str,    'arg': ('--language'                             ,) },
     MD_DISC_TRACK_TOTALS:       { 'default': 'True',                    'type': bool,   'arg': ('--md-disc-track-totals'                 ,) },
-    MD_SAVE_GENRES:             { 'default': 'False',                   'type': bool,   'arg': ('--md-save-genres'                       ,) },
+    MD_SAVE_GENRES:             { 'default': 'True',                    'type': bool,   'arg': ('--md-save-genres'                       ,) },
     MD_ALLGENRES:               { 'default': 'False',                   'type': bool,   'arg': ('--md-allgenres'                         ,) },
     MD_GENREDELIMITER:          { 'default': ', ',                      'type': str,    'arg': ('--md-genredelimiter'                    ,) },
     MD_ARTISTDELIMITER:         { 'default': ', ',                      'type': str,    'arg': ('--md-artistdelimiter'                   ,) },

@@ -8,7 +8,7 @@ from librespot.metadata import TrackId
 
 from zotify.const import TRACKS, ALBUM, GENRES, NAME, DISC_NUMBER, TRACK_NUMBER, TOTAL_TRACKS, \
     IS_PLAYABLE, ARTISTS, IMAGES, URL, RELEASE_DATE, ID, TRACKS_URL, TRACK_STATS_URL, \
-    CODEC_MAP, EXT_MAP, DURATION_MS, HREF, ARTISTS, WIDTH, COMPILATION, ALBUM_TYPE
+    CODEC_MAP, EXT_MAP, DURATION_MS, ARTISTS, WIDTH, COMPILATION, ALBUM_TYPE, ARTIST_URL
 from zotify.config import EXPORT_M3U8
 from zotify.termoutput import Printer, PrintChannel, Loader, ACTIVE_LOADER
 from zotify.utils import fix_filename, set_audio_tags, set_music_thumbnail, create_download_directory, \
@@ -27,8 +27,10 @@ def get_song_info(song_id) -> tuple[list[str], list[Any], str, str, str, Any, An
     
     try:
         artists = []
+        artist_ids = []
         for data in info[TRACKS][0][ARTISTS]:
             artists.append(data[NAME])
+            artist_ids.append(data[ID])
         
         album_name = info[TRACKS][0][ALBUM][NAME]
         album_artist = info[TRACKS][0][ALBUM][ARTISTS][0][NAME]
@@ -48,31 +50,32 @@ def get_song_info(song_id) -> tuple[list[str], list[Any], str, str, str, Any, An
                 image = i
         image_url = image[URL]
         
-        return (artists, info[TRACKS][0][ARTISTS], album_name, album_artist, name, 
+        return (artists, artist_ids, album_name, album_artist, name, 
                 image_url, release_year, disc_number, track_number, total_tracks, 
                 album_compilation, scraped_song_id, is_playable, duration_ms)
     except Exception as e:
         raise ValueError(f'Failed to parse TRACKS_URL response: {str(e)}\n{raw}')
 
 
-def get_song_genres(rawartists: list[str], track_name: str) -> list[str]:
+def get_song_genres(artist_ids: list[str], track_name: str) -> list[str]:
     if Zotify.CONFIG.get_save_genres():
         try:
             with Loader(PrintChannel.PROGRESS_INFO, "Fetching artist information..."):
-                genres = []
-                for data in rawartists:
-                    # query artist genres via href, which will be the api url
-                    (raw, artistInfo) = Zotify.invoke_url(f'{data[HREF]}')
-                    if Zotify.CONFIG.get_all_genres() and len(artistInfo[GENRES]) > 0:
-                        for genre in artistInfo[GENRES]:
-                            genres.append(genre)
-                    elif len(artistInfo[GENRES]) > 0:
-                        genres.append(artistInfo[GENRES][0])
+                artist_ids = ','.join(artist_ids)
+                (raw, artistInfo) = Zotify.invoke_url(ARTIST_URL + f'?ids={artist_ids}')
+                
+                genres = set()
+                for artist in artistInfo[ARTISTS]:
+                    if GENRES in artist and len(artist[GENRES]) > 0:
+                        genres.update(artist[GENRES])
                 
                 if len(genres) == 0:
                     Printer.print(PrintChannel.WARNINGS, "###   WARNING:  NO GENRES FOUND   ###\n" +\
                                                         f"###   Track_Name: {track_name}   ###")
-                    genres.append('')
+                    genres = ['']
+                else:
+                    genres = list(genres)
+                    genres.sort()
             
             return genres
         except Exception as e:
@@ -172,7 +175,7 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
     try:
         output_template = Zotify.CONFIG.get_output(mode)
         
-        (artists, raw_artists, album_name, album_artist, name, image_url, release_year, disc_number,
+        (artists, artist_ids, album_name, album_artist, name, image_url, release_year, disc_number,
          track_number, total_tracks, compilation, scraped_song_id, is_playable, duration_ms) = get_song_info(track_id)
         total_discs = None
         if "total_discs" in extra_keys:
@@ -319,7 +322,7 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                     
                     time_dl_end = time.time()
                     
-                    genres = get_song_genres(raw_artists, name)
+                    genres = get_song_genres(artist_ids, name)
                     
                     lyrics = handle_lyrics(track_id, song_name, filedir)
                     
