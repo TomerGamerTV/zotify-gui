@@ -83,34 +83,55 @@ class Zotify:
         }
     
     @classmethod
-    def invoke_url_with_params(cls, url, limit, offset, **kwargs):
+    def invoke_url(cls, url: str, _params: dict | None = None) -> tuple[str, dict]:
         headers = cls.get_auth_header()
-        params = {LIMIT: limit, OFFSET: offset}
-        params.update(kwargs)
-        return requests.get(url, headers=headers, params=params).json()
-    
-    @classmethod
-    def invoke_url(cls, url: str, tryCount: int = 0):
-        headers = cls.get_auth_header()
-        response = requests.get(url, headers=headers)
-        responsetext = response.text
-        try:
-            responsejson = response.json()
-            # responsejson = {"error": {"status": "Unknown", "message": "Received an empty response"}}
-        except json.decoder.JSONDecodeError:
-            responsejson = {"error": {"status": "Unknown", "message": "Received an empty response"}}
         
-        if not responsejson or 'error' in responsejson:
-            if tryCount < cls.CONFIG.get_retry_attempts():
-                Printer.print(PrintChannel.WARNINGS, f"###   WARNING:  API ERROR (TRY {tryCount}) - RETRYING   ###\n" +\
-                                                     f"###   {responsejson['error']['status']}: {responsejson['error']['message']}")
-                sleep(5)
-                return cls.invoke_url(url, tryCount + 1)
+        tryCount = 0
+        while tryCount < cls.CONFIG.get_retry_attempts():
+            response = requests.get(url, headers=headers, params=_params)
             
-            Printer.print(PrintChannel.API_ERRORS, f"###   API ERROR:  API ERROR (TRY {tryCount}) - RETRY LIMIT EXCEDED   ###\n" +\
-                                                   f"###   {responsejson['error']['status']}: {responsejson['error']['message']}")
+            try:
+                responsetext = response.text
+                responsejson = response.json()
+                if not responsejson:
+                    raise json.decoder.JSONDecodeError
+                # responsejson = {"error": {"status": "Unknown", "message": "Received an empty response"}}
+            except json.decoder.JSONDecodeError:
+                responsejson = {"error": {"status": "Unknown", "message": "Received an empty response"}}
+            
+            if not responsejson or 'error' in responsejson:
+                Printer.print(PrintChannel.WARNINGS, f"###   WARNING:  API ERROR (TRY {tryCount}) - RETRYING   ###\n" +\
+                                                    f"###   {responsejson['error']['status']}: {responsejson['error']['message']}")
+                sleep(5)
+                tryCount += 1
+                continue
+            else:
+                return responsetext, responsejson
+        
+        Printer.print(PrintChannel.API_ERRORS, f"###   API ERROR:  API ERROR (TRY {tryCount}) - RETRY LIMIT EXCEDED   ###\n" +\
+                                            f"###   {responsejson['error']['status']}: {responsejson['error']['message']}")
         
         return responsetext, responsejson
+    
+    @classmethod
+    def invoke_url_with_params(cls, url, limit, offset, **kwargs):
+        params = {LIMIT: limit, OFFSET: offset}
+        params.update(kwargs)
+        
+        _, responsejson = cls.invoke_url(url, params)
+        return responsejson
+    
+    @classmethod
+    def invoke_url_nextable(cls, url: str, response_key: str, limit: int = 50, stripper: str | None = None) -> list:
+        resp = cls.invoke_url_with_params(url, limit=limit, offset=0)
+        if stripper is not None:
+            resp = resp[stripper]
+        items: list = resp[response_key]
+        
+        while resp['next'] is not None:
+            (raw, resp) = Zotify.invoke_url(resp['next'])
+            items.extend(resp[response_key])
+        return items
     
     @classmethod
     def check_premium(cls) -> bool:

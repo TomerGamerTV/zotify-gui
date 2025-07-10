@@ -14,34 +14,7 @@ from zotify.zotify import Zotify
 from zotify.termoutput import PrintChannel, Printer
 
 
-def get_archived_song_ids() -> list[str]:
-    """ Returns list of all time downloaded songs """
-    
-    ids = []
-    archive_path = Zotify.CONFIG.get_song_archive_location()
-    
-    if Path(archive_path).exists() and not Zotify.CONFIG.get_disable_song_archive():
-        with open(archive_path, 'r', encoding='utf-8') as f:
-            ids = [line.strip().split('\t')[0] for line in f.readlines()]
-    
-    return ids
-
-
-def add_to_song_archive(song_id: str, filename: str, author_name: str, song_name: str) -> None:
-    """ Adds song id to all time installed songs archive """
-    
-    if Zotify.CONFIG.get_disable_song_archive():
-        return
-    
-    archive_path = Zotify.CONFIG.get_song_archive_location()
-    if Path(archive_path).exists():
-        with open(archive_path, 'a', encoding='utf-8') as file:
-            file.write(f'{song_id}\t{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\t{author_name}\t{song_name}\t{filename}\n')
-    else:
-        with open(archive_path, 'w', encoding='utf-8') as file:
-            file.write(f'{song_id}\t{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\t{author_name}\t{song_name}\t{filename}\n')
-
-
+# Path Utils
 def create_download_directory(download_path: str | PurePath) -> None:
     """ Create directory and add a hidden file with song ids """
     Path(download_path).mkdir(parents=True, exist_ok=True)
@@ -55,43 +28,52 @@ def create_download_directory(download_path: str | PurePath) -> None:
             pass
 
 
-def get_directory_song_ids(download_path: str) -> list[str]:
-    """ Gets song ids of songs in directory """
+def fix_filename(name: str | PurePath | Path ):
+    """
+    Replace invalid characters on Linux/Windows/MacOS with underscores.
+    list from https://stackoverflow.com/a/31976060/819417
+    Trailing spaces & periods are ignored on Windows.
+    >>> fix_filename("  COM1  ")
+    '_ COM1 _'
+    >>> fix_filename("COM10")
+    'COM10'
+    >>> fix_filename("COM1,")
+    'COM1,'
+    >>> fix_filename("COM1.txt")
+    '_.txt'
+    >>> all('_' == fix_filename(chr(i)) for i in list(range(32)))
+    True
+    """
+    name = re.sub(r'[/\\:|<>"?*\0-\x1f]|^(AUX|COM[1-9]|CON|LPT[1-9]|NUL|PRN)(?![^.])|^\s|[\s.]$', "_", str(name), flags=re.IGNORECASE)
     
-    song_ids = []
+    maxlen = Zotify.CONFIG.get_max_filename_length()
+    if maxlen and len(name) > maxlen:
+        name = name[:maxlen]
     
-    hidden_file_path = PurePath(download_path).joinpath('.song_ids')
-    
-    if Path(hidden_file_path).is_file() and not Zotify.CONFIG.get_disable_directory_archives():
-        with open(hidden_file_path, 'r', encoding='utf-8') as file:
-            song_ids.extend([line.strip().split('\t')[0] for line in file.readlines()])
-    
-    return song_ids
+    return name
 
 
-def add_to_directory_song_archive(download_path: str, song_id: str, filename: str, author_name: str, song_name: str) -> None:
-    """ Appends song_id to .song_ids file in directory """
+# Input Processing Utils
+def regex_input_for_urls(search_input: str, non_global: bool = False) -> tuple[
+    str | None, str | None, str | None, str | None, str | None, str | None]:
+    """ Since many kinds of search may be passed at the command line, process them all here. """
     
-    if Zotify.CONFIG.get_disable_directory_archives():
-        return
+    link_types = ("track", "album", "playlist", "episode", "show", "artist")
+    base_uri = r'^sp'+r'otify:%s:([0-9a-zA-Z]{22})$'
+    base_url = r'^(?:https?://)?open\.sp'+r'otify\.com(?:/intl-\w+)?/%s/([0-9a-zA-Z]{22})(?:\?si=.+?)?$'
+    if non_global:
+        base_uri = base_uri[1:-1]
+        base_url = base_url[1:-1]
     
-    hidden_file_path = PurePath(download_path).joinpath('.song_ids')
-    # not checking if file exists because we need an exception
-    # to be raised if something is wrong
-    with open(hidden_file_path, 'a', encoding='utf-8') as file:
-        file.write(f'{song_id}\t{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\t{author_name}\t{song_name}\t{filename}\n')
-
-
-def get_downloaded_song_duration(filename: str) -> float:
-    """ Returns the downloaded file's duration in seconds """
+    result = [None, None, None, None, None, None]
+    for i, req_type in enumerate(link_types):
+        uri_res = re.search(base_uri % req_type, search_input)
+        url_res = re.search(base_url % req_type, search_input)
+        
+        if uri_res is not None or url_res is not None:
+            result[i] = uri_res.group(1) if uri_res else url_res.group(1)
     
-    command = ['ffprobe', '-show_entries', 'format=duration', '-i', f'{filename}']
-    output = subprocess.run(command, capture_output=True)
-    
-    duration = re.search(r'[\D]=([\d\.]*)', str(output.stdout)).groups()[0]
-    duration = float(duration)
-    
-    return duration
+    return tuple(result)
 
 
 def split_sanitize_input(raw_input: str) -> list[int]:
@@ -117,52 +99,7 @@ def split_sanitize_input(raw_input: str) -> list[int]:
     return inputs
 
 
-def add_to_m3u8(liked_m3u8: bool, song_duration: float, song_name: str, song_path: PurePath) -> str | None:
-    """ Adds song to a .m3u8 playlist, returning the song label in m3u8 format"""
-    
-    m3u_dir = Zotify.CONFIG.get_m3u8_location()
-    if m3u_dir is None:
-        m3u_dir = song_path.parent
-    
-    if liked_m3u8:
-        m3u_path = song_path.parent / (Zotify.datetime_launch + "_zotify.m3u8")
-        if not Path(song_path.parent / "Liked Songs.m3u8").exists() or "justCreatedLikedSongsM3U8" in globals():
-            m3u_path = song_path.parent / "Liked Songs.m3u8"
-            global justCreatedLikedSongsM3U8; justCreatedLikedSongsM3U8 = True # hacky, terrible, truly awful: too bad!
-    else:
-        m3u_path = m3u_dir / (Zotify.datetime_launch + "_zotify.m3u8")
-    
-    if not Path(m3u_path).exists():
-        Path(m3u_path.parent).mkdir(parents=True, exist_ok=True)
-        with open(m3u_path, 'x', encoding='utf-8') as file:
-            file.write("#EXTM3U\n\n")
-    
-    song_label_m3u = None
-    with open(m3u_path, 'a', encoding='utf-8') as file:
-        song_label_m3u = f"#EXTINF:{int(song_duration)}, {song_name}\n"
-        if Zotify.CONFIG.get_m3u8_relative_paths():
-            song_path = os.path.relpath(song_path, m3u_path.parent)
-        
-        file.write(song_label_m3u)
-        file.write(f"{song_path}\n\n")
-    return song_label_m3u
-
-
-def fetch_m3u8_songs(m3u_path: PurePath) -> list[str] | None:
-    """ Fetches the songs and associated file paths in an .m3u8 playlist"""
-    
-    if not Path(m3u_path).exists():
-        return
-    
-    with open(m3u_path, 'r', encoding='utf-8') as file:
-        linesraw = file.readlines()[2:-1]
-        # group by song and filepath
-        # songsgrouped = []
-        # for i in range(len(linesraw)//3):
-        #     songsgrouped.append(linesraw[3*i:3*i+3])
-    return linesraw
-
-
+# Metadata Utils
 def conv_artist_format(artists: list[str]) -> list[str] | str:
     """ Returns converted artist format """
     if Zotify.CONFIG.get_artist_delimiter() == "":
@@ -235,51 +172,17 @@ def set_music_thumbnail(filename: PurePath, image_url: str, mode: str) -> None:
             jpg_file.write(img)
 
 
-def regex_input_for_urls(search_input: str, non_global: bool = False) -> tuple[
-    str | None, str | None, str | None, str | None, str | None, str | None]:
-    """ Since many kinds of search may be passed at the command line, process them all here. """
+# Time Utils
+def get_downloaded_track_duration(filename: str) -> float:
+    """ Returns the downloaded file's duration in seconds """
     
-    link_types = ("track", "album", "playlist", "episode", "show", "artist")
-    base_uri = r'^sp'+r'otify:%s:([0-9a-zA-Z]{22})$'
-    base_url = r'^(?:https?://)?open\.sp'+r'otify\.com(?:/intl-\w+)?/%s/([0-9a-zA-Z]{22})(?:\?si=.+?)?$'
-    if non_global:
-        base_uri = base_uri[1:-1]
-        base_url = base_url[1:-1]
+    command = ['ffprobe', '-show_entries', 'format=duration', '-i', f'{filename}']
+    output = subprocess.run(command, capture_output=True)
     
-    result = [None, None, None, None, None, None]
-    for i, req_type in enumerate(link_types):
-        uri_res = re.search(base_uri % req_type, search_input)
-        url_res = re.search(base_url % req_type, search_input)
-        
-        if uri_res is not None or url_res is not None:
-            result[i] = uri_res.group(1) if uri_res else url_res.group(1)
+    duration = re.search(r'[\D]=([\d\.]*)', str(output.stdout)).groups()[0]
+    duration = float(duration)
     
-    return tuple(result)
-
-
-def fix_filename(name: str | PurePath | Path ):
-    """
-    Replace invalid characters on Linux/Windows/MacOS with underscores.
-    list from https://stackoverflow.com/a/31976060/819417
-    Trailing spaces & periods are ignored on Windows.
-    >>> fix_filename("  COM1  ")
-    '_ COM1 _'
-    >>> fix_filename("COM10")
-    'COM10'
-    >>> fix_filename("COM1,")
-    'COM1,'
-    >>> fix_filename("COM1.txt")
-    '_.txt'
-    >>> all('_' == fix_filename(chr(i)) for i in list(range(32)))
-    True
-    """
-    name = re.sub(r'[/\\:|<>"?*\0-\x1f]|^(AUX|COM[1-9]|CON|LPT[1-9]|NUL|PRN)(?![^.])|^\s|[\s.]$', "_", str(name), flags=re.IGNORECASE)
-    
-    maxlen = Zotify.CONFIG.get_max_filename_length()
-    if maxlen and len(name) > maxlen:
-        name = name[:maxlen]
-    
-    return name
+    return duration
 
 
 def fmt_seconds(secs: float) -> str:
@@ -317,3 +220,106 @@ def wait_between_downloads() -> None:
     if waittime > 5:
         Printer.print(PrintChannel.DOWNLOADS, f'###   PAUSED: WAITING FOR {waittime} SECONDS BETWEEN DOWNLOADS   ###')
     sleep(waittime)
+
+
+# Song Archive Utils
+def get_archived_song_ids() -> list[str]:
+    """ Returns list of all time downloaded songs """
+    
+    track_ids = []
+    archive_path = Zotify.CONFIG.get_song_archive_location()
+    
+    if Path(archive_path).exists() and not Zotify.CONFIG.get_disable_song_archive():
+        with open(archive_path, 'r', encoding='utf-8') as f:
+            track_ids = [line.strip().split('\t')[0] for line in f.readlines()]
+    
+    return track_ids
+
+
+def add_to_song_archive(track_id: str, filename: str, author_name: str, track_name: str) -> None:
+    """ Adds song id to all time installed songs archive """
+    
+    if Zotify.CONFIG.get_disable_song_archive():
+        return
+    
+    archive_path = Zotify.CONFIG.get_song_archive_location()
+    if Path(archive_path).exists():
+        with open(archive_path, 'a', encoding='utf-8') as file:
+            file.write(f'{track_id}\t{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\t{author_name}\t{track_name}\t{filename}\n')
+    else:
+        with open(archive_path, 'w', encoding='utf-8') as file:
+            file.write(f'{track_id}\t{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\t{author_name}\t{track_name}\t{filename}\n')
+
+
+def get_directory_song_ids(download_path: str) -> list[str]:
+    """ Gets song ids of songs in directory """
+    
+    track_ids = []
+    
+    hidden_file_path = PurePath(download_path).joinpath('.song_ids')
+    
+    if Path(hidden_file_path).is_file() and not Zotify.CONFIG.get_disable_directory_archives():
+        with open(hidden_file_path, 'r', encoding='utf-8') as file:
+            track_ids.extend([line.strip().split('\t')[0] for line in file.readlines()])
+    
+    return track_ids
+
+
+def add_to_directory_song_archive(download_path: str, track_id: str, filename: str, author_name: str, track_name: str) -> None:
+    """ Appends song_id to .song_ids file in directory """
+    
+    if Zotify.CONFIG.get_disable_directory_archives():
+        return
+    
+    hidden_file_path = PurePath(download_path).joinpath('.song_ids')
+    # not checking if file exists because we need an exception
+    # to be raised if something is wrong
+    with open(hidden_file_path, 'a', encoding='utf-8') as file:
+        file.write(f'{track_id}\t{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\t{author_name}\t{track_name}\t{filename}\n')
+
+
+# Playlist File Utils
+def add_to_m3u8(liked_m3u8: bool, track_duration: float, track_name: str, track_path: PurePath) -> str | None:
+    """ Adds song to a .m3u8 playlist, returning the song label in m3u8 format"""
+    
+    m3u_dir = Zotify.CONFIG.get_m3u8_location()
+    if m3u_dir is None:
+        m3u_dir = track_path.parent
+    
+    if liked_m3u8:
+        m3u_path = track_path.parent / (Zotify.datetime_launch + "_zotify.m3u8")
+        if not Path(track_path.parent / "Liked Songs.m3u8").exists() or "justCreatedLikedSongsM3U8" in globals():
+            m3u_path = track_path.parent / "Liked Songs.m3u8"
+            global justCreatedLikedSongsM3U8; justCreatedLikedSongsM3U8 = True # hacky, terrible, truly awful: too bad!
+    else:
+        m3u_path = m3u_dir / (Zotify.datetime_launch + "_zotify.m3u8")
+    
+    if not Path(m3u_path).exists():
+        Path(m3u_path.parent).mkdir(parents=True, exist_ok=True)
+        with open(m3u_path, 'x', encoding='utf-8') as file:
+            file.write("#EXTM3U\n\n")
+    
+    track_label_m3u = None
+    with open(m3u_path, 'a', encoding='utf-8') as file:
+        track_label_m3u = f"#EXTINF:{int(track_duration)}, {track_name}\n"
+        if Zotify.CONFIG.get_m3u8_relative_paths():
+            track_path = os.path.relpath(track_path, m3u_path.parent)
+        
+        file.write(track_label_m3u)
+        file.write(f"{track_path}\n\n")
+    return track_label_m3u
+
+
+def fetch_m3u8_songs(m3u_path: PurePath) -> list[str] | None:
+    """ Fetches the songs and associated file paths in an .m3u8 playlist"""
+    
+    if not Path(m3u_path).exists():
+        return
+    
+    with open(m3u_path, 'r', encoding='utf-8') as file:
+        linesraw = file.readlines()[2:-1]
+        # group by song and filepath
+        # songsgrouped = []
+        # for i in range(len(linesraw)//3):
+        #     songsgrouped.append(linesraw[3*i:3*i+3])
+    return linesraw

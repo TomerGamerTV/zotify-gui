@@ -50,33 +50,6 @@ def download_from_urls(urls: list[str]) -> int:
     return download
 
 
-def get_saved_tracks() -> list:
-    """ Returns user's saved tracks """
-    songs = []
-    offset = 0
-    limit = 50
-    
-    while True:
-        resp = Zotify.invoke_url_with_params(
-            USER_SAVED_TRACKS_URL, limit=limit, offset=offset)
-        offset += limit
-        songs.extend(resp[ITEMS])
-        if len(resp[ITEMS]) < limit:
-            break
-    
-    return songs
-
-
-def get_followed_artists() -> list:
-    """ Returns user's followed artists """
-    artists = []
-    resp = Zotify.invoke_url(USER_FOLLOWED_ARTISTS_URL)[1]
-    for artist in resp[ARTISTS][ITEMS]:
-        artists.append(artist)
-    
-    return artists
-
-
 def search(search_term) -> None:
     """ Searches download server's API for relevant data """
     params = {'limit': '10',
@@ -299,7 +272,7 @@ def client(args: Namespace) -> None:
         return
     
     elif args.liked_songs:
-        liked_songs = get_saved_tracks()
+        liked_songs = Zotify.invoke_url_nextable(USER_SAVED_TRACKS_URL, ITEMS)
         
         pos = 3
         pbar = Printer.pbar(liked_songs, unit='song', pos=pos, 
@@ -317,9 +290,9 @@ def client(args: Namespace) -> None:
         return
     
     elif args.followed_artists:
-        artists = get_followed_artists()
+        followed_artists = Zotify.invoke_url_nextable(USER_FOLLOWED_ARTISTS_URL, ITEMS, stripper=ARTISTS)
         pos = 7
-        pbar = Printer.pbar(artists, unit='artist', pos=pos, 
+        pbar = Printer.pbar(followed_artists, unit='artist', pos=pos, 
                             disable=not Zotify.CONFIG.get_show_url_pbar())
         pbar_stack = [pbar]
         

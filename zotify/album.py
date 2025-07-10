@@ -14,43 +14,31 @@ def get_album_info(album_id: str) -> tuple[str, str, list[dict], int, bool]:
     album_artist = resp[ARTISTS][0][NAME]
     compilation = resp[ALBUM_TYPE] == COMPILATION
     
-    songs = []
-    offset = 0
-    limit = 50
-    
-    while True:
-        resp = Zotify.invoke_url_with_params(f'{ALBUM_URL}/{album_id}/tracks', limit=limit, offset=offset)
-        offset += limit
-        songs.extend(resp[ITEMS])
-        if len(resp[ITEMS]) < limit:
-            break
+    tracks = Zotify.invoke_url_nextable(f'{ALBUM_URL}/{album_id}/tracks', ITEMS)
     
     # Printer.json_dump(resp, PrintChannel.DEBUG)
     
-    total_discs = songs[-1][DISC_NUMBER]
+    total_discs = tracks[-1][DISC_NUMBER]
     
-    return album_name, album_artist, songs, total_discs, compilation
+    return album_name, album_artist, tracks, total_discs, compilation
 
 
-def get_artist_albums(artist_id):
+def get_artist_album_ids(artist_id):
     """ Returns artist's albums """
-    (raw, resp) = Zotify.invoke_url(f'{ARTIST_URL}/{artist_id}/albums?include_groups=album%2Csingle')
-    # Return a list each album's id
-    album_ids = [resp[ITEMS][i][ID] for i in range(len(resp[ITEMS]))]
-    # Recursive requests to get all albums including singles an EPs
-    while resp['next'] is not None:
-        (raw, resp) = Zotify.invoke_url(resp['next'])
-        album_ids.extend([resp[ITEMS][i][ID] for i in range(len(resp[ITEMS]))])
     
-    return album_ids
+    # excludes "appears_on" and "compilations"
+    url = f'{ARTIST_URL}/{artist_id}/albums?include_groups=album%2Csingle'
+    simple_albums = Zotify.invoke_url_nextable(url, ITEMS)
+    
+    return [album[ID] for album in simple_albums]
 
 
 def download_artist_albums(artist, pbar_stack: list | None = None):
     """ Downloads albums of an artist """
-    albums = get_artist_albums(artist)
+    album_ids = get_artist_album_ids(artist)
     
     pos, pbar_stack = Printer.pbar_position_handler(5, pbar_stack)
-    pbar = Printer.pbar(albums, unit='album', pos=pos,
+    pbar = Printer.pbar(album_ids, unit='album', pos=pos,
                         disable=not Zotify.CONFIG.get_show_artist_pbar())
     pbar_stack.append(pbar)
     

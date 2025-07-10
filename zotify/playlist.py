@@ -1,4 +1,4 @@
-from zotify.const import USER_PLAYLISTS_URL, PLAYLISTS_URL, ITEMS, ID, TRACK, NAME, TYPE
+from zotify.const import USER_PLAYLISTS_URL, PLAYLISTS_URL, ITEMS, ID, TRACK, NAME, TYPE, TRACKS
 from zotify.podcast import download_episode
 from zotify.termoutput import Printer, PrintChannel
 from zotify.track import download_track
@@ -6,39 +6,15 @@ from zotify.utils import split_sanitize_input, strptime_utc
 from zotify.zotify import Zotify
 
 
-def get_all_playlists():
-    """ Returns list of users playlists """
-    playlists = []
-    limit = 50
-    offset = 0
-    
-    while True:
-        resp = Zotify.invoke_url_with_params(USER_PLAYLISTS_URL, limit=limit, offset=offset)
-        offset += limit
-        playlists.extend(resp[ITEMS])
-        if len(resp[ITEMS]) < limit:
-            break
-    
-    return playlists
-
-
 def get_playlist_songs(playlist_id: str) -> tuple[list[str], list[dict]]:
     """ returns list of songs in a playlist """
-    playlist_tracks = []
-    offset = 0
-    limit = 100
     
-    while True:
-        resp = Zotify.invoke_url_with_params(f'{PLAYLISTS_URL}/{playlist_id}/tracks', limit=limit, offset=offset)
-        offset += limit
-        playlist_tracks.extend(resp[ITEMS])
-        if len(resp[ITEMS]) < limit:
-            break
+    playlist_tracks = Zotify.invoke_url_nextable(f'{PLAYLISTS_URL}/{playlist_id}/{TRACKS}', ITEMS, 100)
     
     playlist_tracks.sort(key=lambda s: strptime_utc(s['added_at']))
     
     # Filter Before Indexing, matches prior behavior
-    playlist_tracks = [song_dict[TRACK] if song_dict[TRACK] is not None and song_dict[TRACK][ID] else None for song_dict in playlist_tracks]
+    playlist_tracks = [track_dict[TRACK] if track_dict[TRACK] is not None and track_dict[TRACK][ID] else None for track_dict in playlist_tracks]
     
     char_num = max({len(str(len(playlist_tracks))), 2})
     playlist_num = [str(n+1).zfill(char_num) for n in range(len(playlist_tracks))]
@@ -49,8 +25,8 @@ def get_playlist_songs(playlist_id: str) -> tuple[list[str], list[dict]]:
         playlist_tracks.reverse()
     
     # Filter After Indexing, feels more safe
-    # for i, song_dict in enumerate(playlist_tracks):
-    #     if song_dict[TRACK] is None or song_dict[TRACK][ID] is None:
+    # for i, track_dict in enumerate(playlist_tracks):
+    #     if track_dict[TRACK] is None or track_dict[TRACK][ID] is None:
     #         playlist_num.pop(i)
     #         playlist_tracks.pop(i)
     
@@ -93,10 +69,11 @@ def download_playlist(playlist, pbar_stack: list | None = None):
 
 def download_from_user_playlist():
     """ Select which playlist(s) to download """
-    playlists = get_all_playlists()
+    
+    users_playlists = Zotify.invoke_url_nextable(USER_PLAYLISTS_URL, ITEMS)
     
     count = 1
-    for playlist in playlists:
+    for playlist in users_playlists:
         Printer.print(PrintChannel.MANDATORY, str(count) + ': ' + playlist[NAME].strip())
         count += 1
     
@@ -112,7 +89,7 @@ def download_from_user_playlist():
     pbar_stack = [pbar]
     
     for playlist_number in pbar:
-        playlist = playlists[int(playlist_number) - 1]
+        playlist = users_playlists[int(playlist_number) - 1]
         download_playlist(playlist, pbar_stack)
         pbar.set_description(playlist[NAME].strip())
         Printer.refresh_all_pbars(pbar_stack)

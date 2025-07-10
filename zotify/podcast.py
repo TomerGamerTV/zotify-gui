@@ -8,33 +8,21 @@ from zotify.utils import create_download_directory, fix_filename, fmt_seconds, w
 from zotify.zotify import Zotify
 
 
-def get_episode_info(episode_id_str) -> tuple[str | None, str | None, str | None]:
+def get_episode_info(episode_id: str) -> tuple[str | None, str | None, str | None]:
     with Loader(PrintChannel.PROGRESS_INFO, "Fetching episode information..."):
-        (raw, info) = Zotify.invoke_url(f'{EPISODE_INFO_URL}/{episode_id_str}')
-    if not info:
+        (raw, resp) = Zotify.invoke_url(f'{EPISODE_INFO_URL}/{episode_id}')
+    if not resp:
         Printer.print(PrintChannel.ERRORS, "###   ERROR:  INVALID EPISODE ID   ###")
-    if ERROR in info:
+    if ERROR in resp:
         return None, None, None
-    duration_ms = info[DURATION_MS]
-    return fix_filename(info[SHOW][NAME]), duration_ms, fix_filename(info[NAME])
+    duration_ms = resp[DURATION_MS]
+    return fix_filename(resp[SHOW][NAME]), duration_ms, fix_filename(resp[NAME])
 
 
-def get_show_episodes(show_id_str) -> list:
-    episodes = []
-    offset = 0
-    limit = 50
-    
+def get_show_episode_ids(show_id: str) -> list:
     with Loader(PrintChannel.PROGRESS_INFO, "Fetching episodes..."):
-        while True:
-            resp = Zotify.invoke_url_with_params(
-                f'{SHOWS_URL}/{show_id_str}/episodes', limit=limit, offset=offset)
-            offset += limit
-            for episode in resp[ITEMS]:
-                episodes.append(episode[ID])
-            if len(resp[ITEMS]) < limit:
-                break
-    
-    return episodes
+        episodes = Zotify.invoke_url_nextable(f'{SHOWS_URL}/{show_id}/episodes', ITEMS)
+    return [episode[ID] for episode in episodes]
 
 
 def download_podcast_directly(url, filename):
@@ -64,10 +52,10 @@ def download_podcast_directly(url, filename):
 
 
 def download_show(show_id, pbar_stack: list | None = None):
-    episodes = get_show_episodes(show_id)
+    episode_ids = get_show_episode_ids(show_id)
     
     pos, pbar_stack = Printer.pbar_position_handler(3, pbar_stack)
-    pbar = Printer.pbar(episodes, unit='episode', pos=pos,
+    pbar = Printer.pbar(episode_ids, unit='episode', pos=pos,
                         disable=not Zotify.CONFIG.get_show_playlist_pbar())
     pbar_stack.append(pbar)
     
@@ -99,9 +87,8 @@ def download_episode(episode_id, pbar_stack: list | None = None) -> None:
         filename = podcast_name + ' - ' + episode_name
         extra_paths = podcast_name + '/'
         
-        resp = Zotify.invoke_url(
-            PARTNER_URL + episode_id + '"}&extensions=' + PERSISTED_QUERY)[1]["data"]["episode"]
-        direct_download_url = resp["audio"]["items"][-1]["url"]
+        (raw, resp) = Zotify.invoke_url(PARTNER_URL + episode_id + '"}&extensions=' + PERSISTED_QUERY)
+        direct_download_url = resp["data"]["episode"]["audio"]["items"][-1]["url"]
         
         download_directory = PurePath(Zotify.CONFIG.get_root_podcast_path()).joinpath(extra_paths)
         create_download_directory(download_directory)
