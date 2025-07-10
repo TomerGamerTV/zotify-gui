@@ -83,7 +83,7 @@ class Zotify:
         }
     
     @classmethod
-    def invoke_url(cls, url: str, _params: dict | None = None) -> tuple[str, dict]:
+    def invoke_url(cls, url: str, _params: dict | None = None, expectFail: bool = False) -> tuple[str, dict]:
         headers = cls.get_auth_header()
         
         tryCount = 0
@@ -100,16 +100,18 @@ class Zotify:
                 responsejson = {"error": {"status": "Unknown", "message": "Received an empty response"}}
             
             if not responsejson or 'error' in responsejson:
-                Printer.print(PrintChannel.WARNINGS, f"###   WARNING:  API ERROR (TRY {tryCount}) - RETRYING   ###\n" +\
-                                                    f"###   {responsejson['error']['status']}: {responsejson['error']['message']}")
-                sleep(5)
+                if not expectFail: 
+                    Printer.print(PrintChannel.WARNINGS, f"###   WARNING:  API ERROR (TRY {tryCount}) - RETRYING   ###\n" +\
+                                                         f"###   {responsejson['error']['status']}: {responsejson['error']['message']}")
+                sleep(5 if not expectFail else 1)
                 tryCount += 1
                 continue
             else:
                 return responsetext, responsejson
         
-        Printer.print(PrintChannel.API_ERRORS, f"###   API ERROR:  API ERROR (TRY {tryCount}) - RETRY LIMIT EXCEDED   ###\n" +\
-                                            f"###   {responsejson['error']['status']}: {responsejson['error']['message']}")
+        if not expectFail:
+            Printer.print(PrintChannel.API_ERRORS, f"###   API ERROR:  API ERROR (TRY {tryCount}) - RETRY LIMIT EXCEDED   ###\n" +\
+                                                   f"###   {responsejson['error']['status']}: {responsejson['error']['message']}")
         
         return responsetext, responsejson
     

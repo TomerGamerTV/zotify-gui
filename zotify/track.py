@@ -90,7 +90,8 @@ def get_track_genres(artist_ids: list[str], track_name: str) -> list[str]:
 
 
 def get_track_lyrics(track_id: str) -> list[str]:
-    (raw, lyrics_dict) = Zotify.invoke_url('https://spclient.wg.spot' + f'ify.com/color-lyrics/v2/track/{track_id}')
+    # expect failure here, lyrics are not guaranteed to be available
+    (raw, lyrics_dict) = Zotify.invoke_url('https://spclient.wg.spot' + f'ify.com/color-lyrics/v2/track/{track_id}', expectFail=True)
     if lyrics_dict:
         try:
             formatted_lyrics = lyrics_dict['lyrics']['lines']
