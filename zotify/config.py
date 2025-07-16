@@ -71,6 +71,7 @@ CONFIG_VALUES = {
     DOWNLOAD_LYRICS:            { 'default': 'True',                    'type': bool,   'arg': ('--download-lyrics'                      ,) },
     LYRICS_LOCATION:            { 'default': '',                        'type': str,    'arg': ('--lyrics-location'                      ,) },
     ALWAYS_CHECK_LYRICS:        { 'default': 'False',                   'type': bool,   'arg': ('--always-check-lyrics'                  ,) },
+    LYRICS_MD_HEADER:           { 'default': 'False',                   'type': bool,   'arg': ('--lyrics-md-header'                     ,) },
     
     # Metadata Options
     LANGUAGE:                   { 'default': 'en',                      'type': str,    'arg': ('--language'                             ,) },
@@ -519,3 +520,7 @@ class Config:
         if not (cls.get_regex_enabled() and cls.get(REGEX_EPISODE_SKIP)):
             return None
         return re.compile(cls.get(REGEX_EPISODE_SKIP), re.I)
+    
+    @classmethod
+    def get_lyrics_header(cls) -> bool:
+        return cls.get(LYRICS_MD_HEADER)

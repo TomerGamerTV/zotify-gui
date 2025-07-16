@@ -100,10 +100,10 @@ def split_sanitize_input(raw_input: str) -> list[int]:
 
 
 # Metadata Utils
-def conv_artist_format(artists: list[str]) -> list[str] | str:
+def conv_artist_format(artists: list[str], FORCE_NO_LIST: bool = False) -> list[str] | str:
     """ Returns converted artist format """
     if Zotify.CONFIG.get_artist_delimiter() == "":
-        return artists
+        return ", ".join(artists) if FORCE_NO_LIST else artists
     else:
         return Zotify.CONFIG.get_artist_delimiter().join(artists)
 
