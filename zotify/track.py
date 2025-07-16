@@ -125,7 +125,7 @@ def get_track_duration(track_id: str) -> float:
     return duration
 
 
-def handle_lyrics(track_id: str, track_name: str, filedir: PurePath) -> list[str] | None:
+def handle_lyrics(track_id: str, track_name: str, name: str, artists: list[str], durationms: int, filedir: PurePath) -> list[str] | None:
     lyrics = None
     if not Zotify.CONFIG.get_download_lyrics() and not Zotify.CONFIG.get_always_check_lyrics():
         return lyrics
@@ -138,6 +138,11 @@ def handle_lyrics(track_id: str, track_name: str, filedir: PurePath) -> list[str
         Path(lyricdir).mkdir(parents=True, exist_ok=True)
         
         lyrics = get_track_lyrics(track_id)
+
+        lyrics.insert(0, "[length:{}:{}]\n".format(math.floor(durationms / 60000), math.floor(durationms % 60000 / 1000)))
+        lyrics.insert(0, "[ar:{}]\n".format(", ".join(artists)))
+        lyrics.insert(0, "[ti:{}]\n".format(name))
+
         with open(lyricdir / f"{track_name}.lrc", 'w', encoding='utf-8') as file:
             file.writelines(lyrics)
         
@@ -257,7 +262,7 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                         file.writelines(songs_m3u[3:])
         
         if Zotify.CONFIG.get_always_check_lyrics():
-            lyrics = handle_lyrics(track_id, track_name, filedir)
+            lyrics = handle_lyrics(track_id, track_name, name, artists, album_name, duration_ms, filedir)
     
     except Exception as e:
         if "prepare_download_loader" in locals():
@@ -330,7 +335,7 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                     
                     genres = get_track_genres(artist_ids, name)
                     
-                    lyrics = handle_lyrics(track_id, track_name, filedir)
+                    lyrics = handle_lyrics(track_id, track_name, name, artists, duration_ms, filedir)
                     
                     # no metadata is written to track prior to conversion
                     convert_audio_format(filename_temp)
