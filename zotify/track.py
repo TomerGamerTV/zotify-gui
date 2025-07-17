@@ -6,6 +6,7 @@ from typing import Any
 from pathlib import Path, PurePath
 from librespot.metadata import TrackId
 
+from zotify import __version__
 from zotify.const import TRACKS, ALBUM, GENRES, NAME, DISC_NUMBER, TRACK_NUMBER, TOTAL_TRACKS, \
     IS_PLAYABLE, ARTISTS, IMAGES, URL, RELEASE_DATE, ID, TRACKS_URL, TRACK_STATS_URL, \
     CODEC_MAP, EXT_MAP, DURATION_MS, ARTISTS, WIDTH, COMPILATION, ALBUM_TYPE, ARTIST_URL
@@ -13,7 +14,7 @@ from zotify.config import EXPORT_M3U8
 from zotify.termoutput import Printer, PrintChannel, Loader, ACTIVE_LOADER
 from zotify.utils import fix_filename, set_audio_tags, set_music_thumbnail, create_download_directory, \
     add_to_m3u8, fetch_m3u8_songs, get_directory_song_ids, add_to_directory_song_archive, \
-    get_archived_song_ids, add_to_song_archive, fmt_duration, wait_between_downloads
+    get_archived_song_ids, add_to_song_archive, fmt_duration, wait_between_downloads, conv_artist_format
 from zotify.zotify import Zotify
 
 
@@ -126,7 +127,8 @@ def get_track_duration(track_id: str) -> float:
     return duration
 
 
-def handle_lyrics(track_id: str, track_name: str, filedir: PurePath) -> list[str] | None:
+def handle_lyrics(track_id: str, track_name: str, filedir: PurePath,
+                  name: str, artists: list[str], album: str, duration_ms: int) -> list[str] | None:
     lyrics = None
     if not Zotify.CONFIG.get_download_lyrics() and not Zotify.CONFIG.get_always_check_lyrics():
         return lyrics
@@ -139,7 +141,17 @@ def handle_lyrics(track_id: str, track_name: str, filedir: PurePath) -> list[str
         Path(lyricdir).mkdir(parents=True, exist_ok=True)
         
         lyrics = get_track_lyrics(track_id)
+        
+        lrc_header = [f"[ti: {name}]\n",
+                      f"[ar: {conv_artist_format(artists, FORCE_NO_LIST=True)}]\n",
+                      f"[al: {album}]\n",
+                      f"[length: {duration_ms // 60000}:{(duration_ms % 60000) // 1000}]\n",
+                      f"[by: Zotify v{__version__}]\n",
+                      "\n"]
+        
         with open(lyricdir / f"{track_name}.lrc", 'w', encoding='utf-8') as file:
+            if Zotify.CONFIG.get_lyrics_header():
+                file.writelines(lrc_header)
             file.writelines(lyrics)
         
     except ValueError:
@@ -258,7 +270,7 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                         file.writelines(songs_m3u[3:])
         
         if Zotify.CONFIG.get_always_check_lyrics():
-            lyrics = handle_lyrics(track_id, track_name, filedir)
+            lyrics = handle_lyrics(track_id, track_name, filedir, name, artists, album_name, duration_ms)
     
     except Exception as e:
         if "prepare_download_loader" in locals():
@@ -331,7 +343,7 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                     
                     genres = get_track_genres(artist_ids, name)
                     
-                    lyrics = handle_lyrics(track_id, track_name, filedir)
+                    lyrics = handle_lyrics(track_id, track_name, filedir, name, artists, album_name, duration_ms)
                     
                     # add blank line (for spacing) if no genres warning is printed
                     if genres == ['']: Printer.print(PrintChannel.WARNINGS, "\n")
