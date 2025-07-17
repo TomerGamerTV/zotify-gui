@@ -13,7 +13,7 @@ from zotify.config import EXPORT_M3U8
 from zotify.termoutput import Printer, PrintChannel, Loader, ACTIVE_LOADER
 from zotify.utils import fix_filename, set_audio_tags, set_music_thumbnail, create_download_directory, \
     add_to_m3u8, fetch_m3u8_songs, get_directory_song_ids, add_to_directory_song_archive, \
-    get_archived_song_ids, add_to_song_archive, fmt_seconds, wait_between_downloads
+    get_archived_song_ids, add_to_song_archive, fmt_duration, wait_between_downloads
 from zotify.zotify import Zotify
 
 
@@ -75,7 +75,7 @@ def get_track_genres(artist_ids: list[str], track_name: str) -> list[str]:
             
             if len(genres) == 0:
                 Printer.print(PrintChannel.WARNINGS, "###   WARNING:  NO GENRES FOUND   ###\n" +\
-                                                    f"###   Track_Name: {track_name}   ###"+"\n"*3)
+                                                    f"###   Track_Name: {track_name}   ###"+"\n"*2)
                 genres = ['']
             else:
                 genres = list(genres)
@@ -102,12 +102,13 @@ def get_track_lyrics(track_id: str) -> list[str]:
             lyrics = [line['words'] + '\n' for line in formatted_lyrics]
         elif(lyrics_dict['lyrics']['syncType'] == "LINE_SYNCED"):
             lyrics = []
+            Printer.debug("Synced Lyric Timestamps:")
             for line in formatted_lyrics:
-                timestamp = int(line['startTimeMs'])
-                ts_minutes = str(math.floor(timestamp / 60000)).zfill(2)
-                ts_seconds = str(math.floor((timestamp % 60000) / 1000)).zfill(2)
-                ts_millis = str(math.floor(timestamp % 1000))[:2].zfill(2)
-                lyrics.append(f'[{ts_minutes}:{ts_seconds}.{ts_millis}]' + line['words'] + '\n')
+                timestamp = int(line['startTimeMs']) // 10
+                ts = fmt_duration(timestamp // 1, (60, 100), (':', '.'), "cs", True)
+                Printer.debug(f"{timestamp}".zfill(5) + f" {ts.split(':')[0]} {ts.split(':')[1].replace('.', ' ')}")
+                lyrics.append(f'[{ts}]' + line['words'] + '\n')
+            Printer.debug("\n")
         return lyrics
     raise ValueError(f'Failed to fetch lyrics: {track_id}')
 
@@ -332,6 +333,8 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                     
                     lyrics = handle_lyrics(track_id, track_name, filedir)
                     
+                    # add blank line (for spacing) if no genres warning is printed
+                    if genres == ['']: Printer.print(PrintChannel.WARNINGS, "\n")
                     # no metadata is written to track prior to conversion
                     convert_audio_format(filename_temp)
                     
@@ -350,8 +353,8 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                         Path(filename_temp).rename(filename)
                     
                     time_ffmpeg_end = time.time()
-                    time_elapsed_dl = fmt_seconds(time_dl_end - time_start)
-                    time_elapsed_ffmpeg = fmt_seconds(time_ffmpeg_end - time_dl_end)
+                    time_elapsed_dl = fmt_duration(time_dl_end - time_start)
+                    time_elapsed_ffmpeg = fmt_duration(time_ffmpeg_end - time_dl_end)
                     
                     Printer.print(PrintChannel.DOWNLOADS, f'###   DOWNLOADED: "{Path(filename).relative_to(Zotify.CONFIG.get_root_path())}"   ###\n' +\
                                                           f'###   DOWNLOAD TOOK {time_elapsed_dl} (PLUS {time_elapsed_ffmpeg} CONVERTING)   ###')

@@ -1,5 +1,4 @@
 import datetime
-import math
 import os
 import re
 import subprocess
@@ -185,27 +184,28 @@ def get_downloaded_track_duration(filename: str) -> float:
     return duration
 
 
-def fmt_seconds(secs: float) -> str:
-    val = math.floor(secs)
+def fmt_duration(duration: float | int, unit_conv: tuple[int] = (60, 60), connectors: tuple[str] = (":", ":"), smallest_unit: str = "s", ALWAYS_ALL_UNITS: bool = False) -> str:
+    """ Formats a duration to a time string, defaulting to seconds -> hh:mm:ss format """
+    duration_secs = int(duration // 1)
+    duration_mins = duration_secs // unit_conv[1]
+    s = duration_secs % unit_conv[1]
+    m = duration_mins % unit_conv[0]
+    h = duration_mins // unit_conv[0]
     
-    s = math.floor(val % 60)
-    val -= s
-    val /= 60
+    # Printer.debug(" ".join([f"{duration_secs}".zfill(5), f'{h}'.zfill(2), f'{m}'.zfill(2), f'{s}'.zfill(2)]))
     
-    m = math.floor(val % 60)
-    val -= m
-    val /= 60
+    if not any((h, m, s)):
+        return "0" + smallest_unit
     
-    h = math.floor(val)
+    if ALWAYS_ALL_UNITS:
+        return f'{h}'.zfill(2) + connectors[0] + f'{m}'.zfill(2) + connectors[1] + f'{s}'.zfill(2)
     
-    if h == 0 and m == 0 and s == 0:
-        return "0s"
-    elif h == 0 and m == 0:
-        return f'{s}s'.zfill(2)
+    if h == 0 and m == 0:
+        return f'{s}' + smallest_unit
     elif h == 0:
-        return f'{m}'.zfill(2) + ':' + f'{s}'.zfill(2)
+        return f'{m}'.zfill(2) + connectors[1] + f'{s}'.zfill(2)
     else:
-        return f'{h}'.zfill(2) + ':' + f'{m}'.zfill(2) + ':' + f'{s}'.zfill(2)
+        return f'{h}'.zfill(2) + connectors[0] + f'{m}'.zfill(2) + connectors[1] + f'{s}'.zfill(2)
 
 
 def strptime_utc(dtstr) -> datetime.datetime:

@@ -4,7 +4,7 @@ from librespot.metadata import EpisodeId
 
 from zotify.const import EPISODE_INFO_URL, SHOWS_URL, PARTNER_URL, PERSISTED_QUERY, ERROR, ID, ITEMS, NAME, SHOW, DURATION_MS
 from zotify.termoutput import PrintChannel, Printer, Loader
-from zotify.utils import create_download_directory, fix_filename, fmt_seconds, wait_between_downloads
+from zotify.utils import create_download_directory, fix_filename, fmt_duration, wait_between_downloads
 from zotify.zotify import Zotify
 
 
@@ -141,7 +141,7 @@ def download_episode(episode_id, pbar_stack: list | None = None) -> None:
                                 time.sleep(delta_want - delta_real)
                 
                 time_dl_end = time.time()
-                time_elapsed_dl = fmt_seconds(time_dl_end - time_start)
+                time_elapsed_dl = fmt_duration(time_dl_end - time_start)
                 
                 Printer.print(PrintChannel.DOWNLOADS, f'###   DOWNLOADED: "{Path(filename).relative_to(Zotify.CONFIG.get_root_path())}"   ###\n' +\
                                                       f'###   DOWNLOAD TOOK {time_elapsed_dl}   ###')
