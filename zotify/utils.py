@@ -182,9 +182,7 @@ def set_audio_tags(filename, track_info: dict, total_discs: str | None, genres: 
     if ext == "mp3":
         tags.mfile.tags.add(TXXX(encoding=3, desc='TRACKID', text=[scraped_track_id]))
     elif ext == "m4a":
-        class Metadata:
-            def __init__(cls, val): cls.values = [scraped_track_id]
-        freeform_set(tags, '----:com.apple.iTunes:trackid',  Metadata())
+        freeform_set(tags, '----:com.apple.iTunes:trackid',  type('tag', (object,), {'values': [scraped_track_id]})())
     else:
         tags.tag_map["trackid"] = TAG_MAP_ENTRY(getter="trackid", setter="trackid", type=str)
     tags["trackid"] = scraped_track_id
