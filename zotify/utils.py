@@ -2,10 +2,11 @@ import datetime
 import os
 import re
 import subprocess
-import music_tag
 import requests
+import music_tag
+from music_tag.file import TAG_MAP_ENTRY
+from mutagen.id3 import TXXX
 from time import sleep
-from typing import Any
 from pathlib import Path, PurePath
 
 from zotify.const import ALBUMARTIST, ARTIST, TRACKTITLE, ALBUM, YEAR, DISCNUMBER, \
@@ -175,6 +176,14 @@ def set_audio_tags(filename, track_info: dict, total_discs: str | None, genres: 
     tags[TRACKNUMBER] = track_number
     
     # Unreliable Tags
+    ext = EXT_MAP[Zotify.CONFIG.get_download_format().lower()]
+    
+    if ext == "mp3":
+        # 'TXXX:TRACKID': TXXX(encoding=<Encoding.UTF16: 1>, desc='TRACKID', text=['asdkfjnaskdjfkhasdf'])
+        tags.mfile.tags.add(TXXX(encoding=3, desc='TRACKID', text=[scraped_track_id]))
+        # tags.tag_map["trackid"] = TAG_MAP_ENTRY(getter="TXXX:trackid", setter="TXXX:trackid", type=str)
+    else:
+        tags.tag_map["trackid"] = TAG_MAP_ENTRY(getter="trackid", setter="trackid", type=str)
     tags["trackid"] = scraped_track_id
     
     if Zotify.CONFIG.get_disc_track_totals():
@@ -188,7 +197,6 @@ def set_audio_tags(filename, track_info: dict, total_discs: str | None, genres: 
     if lyrics and Zotify.CONFIG.get_save_lyrics_tags():
         tags[LYRICS] = "".join(lyrics)
     
-    ext = EXT_MAP[Zotify.CONFIG.get_download_format().lower()]
     if ext == "mp3" and not Zotify.CONFIG.get_disc_track_totals():
         # music_tag python library writes DISCNUMBER and TRACKNUMBER as X/Y instead of X for mp3
         # this method bypasses all internal formatting, probably not resilient against arbitrary inputs
