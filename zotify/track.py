@@ -335,10 +335,14 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                     
                     genres = get_track_genres(artist_ids, name)
                     
-                    lyrics = handle_lyrics(track_id, track_name, filedir, name, artists, album_name, duration_ms)
-                    
                     # add blank line (for spacing) if no genres warning is printed
                     if genres == ['']: Printer.print(PrintChannel.WARNINGS, "\n")
+                    
+                    lyrics = handle_lyrics(track_id, track_name, filedir, name, artists, album_name, duration_ms)
+                    
+                    # add blank line (for spacing) if no genres warning is printed and debug is enabled
+                    if genres == ['']: Printer.debug("\n") 
+                    
                     # no metadata is written to track prior to conversion
                     convert_audio_format(filename_temp)
                     

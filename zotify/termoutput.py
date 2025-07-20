@@ -4,6 +4,7 @@ import platform
 from os import get_terminal_size, system
 from itertools import cycle
 from time import sleep
+from pprint import pformat
 from threading import Thread
 from traceback import TracebackException
 from enum import Enum
@@ -60,7 +61,9 @@ class Printer:
         Printer.print(channel, START_OF_PREV_LINE*2 + msg, loader=True)
     
     @staticmethod
-    def debug(msg: str) -> None:
+    def debug(msg: str | dict) -> None:
+        if not isinstance(msg, str):
+            msg = pformat(msg, indent=2)
         Printer.print(PrintChannel.DEBUG, msg)
     
     @staticmethod
