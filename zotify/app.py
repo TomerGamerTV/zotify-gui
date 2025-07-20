@@ -211,6 +211,10 @@ def search(search_term) -> None:
     Printer.print(PrintChannel.MANDATORY, "\n\n")
     choices = split_sanitize_input(raw_input)
     
+    # Printer.debug(f'###   CHOICES: {choices}   ###')
+    if choices == [0]:
+        return
+    
     pos = 7
     pbar = Printer.pbar(choices, unit='choice', pos=pos, 
                         disable=not Zotify.CONFIG.get_show_url_pbar())

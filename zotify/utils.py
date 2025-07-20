@@ -89,7 +89,7 @@ def split_sanitize_input(raw_input: str) -> list[int]:
     inputs = []
     for ids in IDranges:
         if "-" in ids:
-            start, end = ids.split('-')
+            start, end = ids.split('-') # will probably error if this is a negative number or malformed range
             inputs.extend(list(range(int(start), int(end) + 1)))
         else:
             inputs.append(int(ids))
