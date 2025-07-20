@@ -8,7 +8,7 @@ from time import sleep
 from pathlib import Path, PurePath
 
 from zotify.const import ALBUMARTIST, ARTIST, TRACKTITLE, ALBUM, YEAR, DISCNUMBER, \
-    TRACKNUMBER, ARTWORK, TOTALTRACKS, TOTALDISCS, EXT_MAP, LYRICS, COMPILATION, GENRE
+    TRACKNUMBER, ARTWORK, TOTALTRACKS, TOTALDISCS, EXT_MAP, LYRICS, COMPILATION, GENRE, EXT_MAP
 from zotify.zotify import Zotify
 from zotify.termoutput import PrintChannel, Printer
 
@@ -75,6 +75,18 @@ def fill_output_template(output_template: str, track_info: dict, extra_keys: dic
     output_template += f".{ext}"
     
     return output_template, fix_filename(artists[0]) + ' - ' + fix_filename(name)
+
+
+def walk_directory_for_tracks(path: str | PurePath) -> set[str]:
+    # path must already exist
+    tracks = set()
+    
+    for dirpath, dirnames, filenames in os.walk(Path(path)):
+        for filename in filenames:
+            if filename.endswith(tuple(set(EXT_MAP.values()))):
+                tracks.update(os.path.join(dirpath, filename))
+    
+    return tracks
 
 
 # Input Processing Utils
@@ -150,6 +162,8 @@ def set_audio_tags(filename, track_info: dict, total_discs: str | None, genres: 
      album, album_artists, disc_number, compilation, duration_ms, image_url, is_playable) = track_info.values()
     
     tags = music_tag.load_file(filename)
+    
+    tags["trackid"] = scraped_track_id
     tags[ALBUMARTIST] = conv_artist_format(album_artists)
     tags[ARTIST] = conv_artist_format(artists)
     tags[GENRE] = conv_genre_format(genres)
@@ -252,15 +266,25 @@ def wait_between_downloads() -> None:
 
 
 # Song Archive Utils
-def get_archived_song_ids() -> list[str]:
-    """ Returns list of all time downloaded songs """
+def get_archived_entries() -> list[str]:
+    """ Returns list of all time downloaded song entries """
     
-    track_ids = []
     archive_path = Zotify.CONFIG.get_song_archive_location()
     
+    entries = []
     if Path(archive_path).exists() and not Zotify.CONFIG.get_disable_song_archive():
         with open(archive_path, 'r', encoding='utf-8') as f:
-            track_ids = [line.strip().split('\t')[0] for line in f.readlines()]
+            entries = f.readlines()
+    
+    return entries
+
+
+def get_archived_song_ids() -> list[str]:
+    """ Returns list of all-time downloaded track_ids """
+    
+    entries = get_archived_entries()
+    
+    track_ids = [entry.strip().split('\t')[0] for entry in entries]
     
     return track_ids
 
