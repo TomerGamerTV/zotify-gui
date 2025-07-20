@@ -136,5 +136,16 @@ class Zotify:
         return items
     
     @classmethod
+    def invoke_url_bulk(cls, url: str, bulk_items: list[str], stripper: str, limit: int = 50) -> list:
+        items = []
+        while len(bulk_items):
+            items_batch = '%2c'.join(bulk_items[:limit])
+            bulk_items = bulk_items[limit:]
+            
+            (raw, resp) = Zotify.invoke_url(url + items_batch)
+            items.extend(resp[stripper]) 
+        return items
+    
+    @classmethod
     def check_premium(cls) -> bool:
         return (cls.SESSION.get_user_attribute(TYPE) == PREMIUM)

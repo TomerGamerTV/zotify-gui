@@ -8,7 +8,7 @@ from librespot.metadata import TrackId
 from zotify import __version__
 from zotify.const import TRACKS, ALBUM, GENRES, NAME, DISC_NUMBER, TRACK_NUMBER, TOTAL_TRACKS, \
     IS_PLAYABLE, ARTISTS, IMAGES, URL, RELEASE_DATE, ID, TRACKS_URL, TRACK_STATS_URL, \
-    CODEC_MAP, EXT_MAP, DURATION_MS, ARTISTS, WIDTH, COMPILATION, ALBUM_TYPE, ARTIST_URL
+    CODEC_MAP, EXT_MAP, DURATION_MS, ARTISTS, WIDTH, COMPILATION, ALBUM_TYPE, ARTIST_BULK_URL
 from zotify.config import EXPORT_M3U8
 from zotify.termoutput import Printer, PrintChannel, Loader, ACTIVE_LOADER
 from zotify.utils import fix_filename, set_audio_tags, set_music_thumbnail, create_download_directory, \
@@ -59,32 +59,25 @@ def get_track_info(track_id) -> tuple[list[str], list[Any], str, str, str, Any, 
 
 def get_track_genres(artist_ids: list[str], track_name: str) -> list[str]:
     if Zotify.CONFIG.get_save_genres():
-        try:
-            with Loader(PrintChannel.PROGRESS_INFO, "Fetching artist information..."):
-                genres = set()
-                
-                while len(artist_ids):
-                    artist_batch = '%2c'.join(artist_ids[:50])
-                    artist_ids = artist_ids[50:]
-                    
-                    (raw, resp) = Zotify.invoke_url(ARTIST_URL + f'?ids={artist_batch}')
-                    
-                    for artist in resp[ARTISTS]:
-                        if GENRES in artist and len(artist[GENRES]) > 0:
-                            genres.update(artist[GENRES])
+        with Loader(PrintChannel.PROGRESS_INFO, "Fetching artist information..."):
             
-            if len(genres) == 0:
-                Printer.print(PrintChannel.WARNINGS, "###   WARNING:  NO GENRES FOUND   ###\n" +\
-                                                    f"###   Track_Name: {track_name}   ###"+"\n"*2)
-                genres = ['']
-            else:
-                genres = list(genres)
-                genres.sort()
+            artists = Zotify.invoke_url_bulk(ARTIST_BULK_URL, artist_ids, ARTISTS)
             
-            return genres
-            
-        except Exception as e:
-            raise ValueError(f'Failed to parse GENRES response: {str(e)}\n{raw}')
+            genres = set()
+            for artist in artists:
+                if GENRES in artist and len(artist[GENRES]) > 0:
+                    genres.update(artist[GENRES])
+        
+        if len(genres) == 0:
+            Printer.print(PrintChannel.WARNINGS, "###   WARNING:  NO GENRES FOUND   ###\n" +\
+                                                f"###   Track_Name: {track_name}   ###"+"\n"*2)
+            genres = ['']
+        else:
+            genres = list(genres)
+            genres.sort()
+        
+        return genres
+        
     else:
         return ['']
 
