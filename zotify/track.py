@@ -12,7 +12,8 @@ from zotify.const import TRACKS, ALBUM, GENRES, NAME, DISC_NUMBER, TRACK_NUMBER,
 from zotify.termoutput import Printer, PrintChannel, Loader
 from zotify.utils import fill_output_template, set_audio_tags, set_music_thumbnail, create_download_directory, \
     add_to_m3u8, fetch_m3u8_songs, get_directory_song_ids, add_to_directory_song_archive, \
-    get_archived_song_ids, add_to_song_archive, fmt_duration, wait_between_downloads, conv_artist_format
+    get_archived_song_ids, add_to_song_archive, fmt_duration, wait_between_downloads, conv_artist_format, \
+    conv_genre_format, compare_audio_tags, fix_filename
 from zotify.zotify import Zotify
 
 
@@ -20,7 +21,7 @@ def parse_track_info(resp: dict) -> dict[str, list[str] | str | int | bool]:
     track_info: dict[str, list[str] | str | int | bool] = {}
     
     # track_info unpack to individual variables
-    # (scraped_track_id, name, artists, artist_ids, release_date, release_year, track_number, total_tracks,
+    # (scraped_track_id, track_name, artists, artist_ids, release_date, release_year, track_number, total_tracks,
     # album, album_artists, disc_number, compilation, duration_ms, image_url, is_playable) = track_info.values()
     
     track_info[ID] = resp[ID] # str
@@ -137,6 +138,32 @@ def handle_lyrics(track_id: str, track_label: str, filedir: PurePath, track_info
     except ValueError:
         Printer.hashtaged(PrintChannel.SKIPPING, f'LYRICS FOR "{track_label}" (LYRICS NOT AVAILABLE)')
     return lyrics
+
+
+def update_track_metadata(track_id: str, track_file: Path, track_metadata: dict) -> None:
+    track_info = parse_track_info(track_metadata)
+    (scraped_track_id, track_name, artists, artist_ids, release_date, release_year, track_number, total_tracks,
+     album, album_artists, disc_number, compilation, duration_ms, image_url, is_playable) = track_info.values()
+    total_discs = None #TODO implement total discs
+    
+    track_label = fix_filename(artists[0]) + ' - ' + fix_filename(track_name)
+    genres = get_track_genres(track_info[ARTIST_IDS], track_name)
+    lyrics = handle_lyrics(track_id, track_label, track_file.parent, track_info)
+    
+    reliable_tags = (conv_artist_format(artists), conv_genre_format(genres), track_name, album, album_artists, release_year, disc_number, track_number)
+    unreliable_tags = (track_id, total_tracks, total_discs, compilation, lyrics)
+    
+    if compare_audio_tags(track_file, reliable_tags, unreliable_tags):
+        Printer.print(PrintChannel.SKIPS, f'###   SKIPPING:  METADATA FOR "{track_file.name}" (TAGS ARE UP-TO-DATE)   ###\n')
+        return
+    
+    try:
+        set_audio_tags(track_file.name, track_info, total_discs, genres, lyrics)
+        set_music_thumbnail(track_file.name, track_info[IMAGE_URL], mode="single")
+    except Exception as e:
+        Printer.print(PrintChannel.ERRORS, "###   ERROR:  FAILED TO WRITE METADATA   ###\n" +\
+                                            "###   Ensure FFMPEG is installed and added to your PATH   ###")
+        Printer.traceback(e)
 
 
 def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pbar_stack: list | None = None) -> None:
