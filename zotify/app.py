@@ -1,6 +1,5 @@
 from argparse import Namespace
 from librespot.audio.decoders import AudioQuality
-from tabulate import tabulate
 from pathlib import Path
 
 from zotify.album import download_album, download_artist_albums
@@ -114,7 +113,6 @@ def search(search_term) -> None:
     if TRACK in params['type'].split(','):
         tracks = resp[TRACKS][ITEMS]
         if len(tracks) > 0:
-            Printer.print(PrintChannel.MANDATORY, '###  TRACKS  ###')
             track_data = []
             for track in tracks:
                 if track[EXPLICIT]:
@@ -129,11 +127,9 @@ def search(search_term) -> None:
                     NAME: track[NAME],
                     'type': TRACK,
                 })
-            
                 counter += 1
             total_tracks = counter - 1
-            Printer.print(PrintChannel.MANDATORY, tabulate(track_data, headers=[
-                  'ID', 'Name', 'Artists'], tablefmt='pretty')+"\n\n")
+            Printer.table("TRACKS", ('ID', 'Name', 'Artists'), track_data)
             del tracks
             del track_data
     
@@ -141,7 +137,6 @@ def search(search_term) -> None:
     if ALBUM in params['type'].split(','):
         albums = resp[ALBUMS][ITEMS]
         if len(albums) > 0:
-            Printer.print(PrintChannel.MANDATORY, '###  ALBUMS  ###')
             album_data = []
             for album in albums:
                 album_data.append([counter, album[NAME],
@@ -154,8 +149,7 @@ def search(search_term) -> None:
                 
                 counter += 1
             total_albums = counter - total_tracks - 1
-            Printer.print(PrintChannel.MANDATORY, tabulate(album_data, headers=[
-                  'ID', 'Album', 'Artists'], tablefmt='pretty')+"\n\n")
+            Printer.table("ALBUMS", ('ID', 'Album', 'Artists'), album_data)
             del albums
             del album_data
     
@@ -163,7 +157,6 @@ def search(search_term) -> None:
     if ARTIST in params['type'].split(','):
         artists = resp[ARTISTS][ITEMS]
         if len(artists) > 0:
-            Printer.print(PrintChannel.MANDATORY, '###  ARTISTS  ###')
             artist_data = []
             for artist in artists:
                 artist_data.append([counter, artist[NAME]])
@@ -174,8 +167,7 @@ def search(search_term) -> None:
                 })
                 counter += 1
             total_artists = counter - total_tracks - total_albums - 1
-            Printer.print(PrintChannel.MANDATORY, tabulate(artist_data, headers=[
-                  'ID', 'Name'], tablefmt='pretty')+"\n\n")
+            Printer.table("ARTISTS", ('ID', 'Name'), artist_data)
             del artists
             del artist_data
     
@@ -183,7 +175,6 @@ def search(search_term) -> None:
     if PLAYLIST in params['type'].split(','):
         playlists = resp[PLAYLISTS][ITEMS]
         if len(playlists) > 0:
-            Printer.print(PrintChannel.MANDATORY, '###  PLAYLISTS  ###')
             playlist_data = []
             for playlist in playlists:
                 playlist_data.append(
@@ -195,20 +186,18 @@ def search(search_term) -> None:
                 })
                 counter += 1
             total_playlists = counter - total_artists - total_tracks - total_albums - 1
-            Printer.print(PrintChannel.MANDATORY, tabulate(playlist_data, headers=[
-                  'ID', 'Name', 'Owner'], tablefmt='pretty')+"\n\n")
+            Printer.table("PLAYLISTS", ('ID', 'Name', 'Owner'), playlist_data)
             del playlists
             del playlist_data
     
     if total_tracks + total_albums + total_artists + total_playlists == 0:
-        Printer.print(PrintChannel.MANDATORY, '###   NO RESULTS FOUND - EXITING...   ###')
+        Printer.hashtaged(PrintChannel.MANDATORY, 'NO RESULTS FOUND - EXITING...')
         return
     
     Printer.search_select()
     raw_input = ''
     while len(raw_input) == 0:
         raw_input = str(input('ID(s): '))
-    Printer.print(PrintChannel.MANDATORY, "\n\n")
     choices = split_sanitize_input(raw_input)
     
     # Printer.debug(f'###   CHOICES: {choices}   ###')
@@ -260,7 +249,7 @@ def client(args: Namespace) -> None:
             download_from_urls(urls)
         
         else:
-            Printer.print(PrintChannel.ERRORS, f'###   ERROR:  FILE {filename} NOT FOUND   ###')
+            Printer.hashtaged(PrintChannel.ERROR, f'FILE {filename} NOT FOUND')
         return
     
     elif args.urls:
@@ -285,8 +274,8 @@ def client(args: Namespace) -> None:
         
         for song in pbar:
             if not song[TRACK][NAME] or not song[TRACK][ID]:
-                Printer.print(PrintChannel.SKIPS, '###   SKIPPING:  SONG NO LONGER EXISTS   ###\n' +\
-                                                 f'###   Track_Name: {song[TRACK][NAME]} - Track_ID: {song[TRACK][ID]}   ###')
+                Printer.hashtaged(PrintChannel.SKIPPING, 'SONG NO LONGER EXISTS\n' +\
+                                                        f'Track_Name: {song[TRACK][NAME]} - Track_ID: {song[TRACK][ID]}')
             else:
                 download_track('liked', song[TRACK][ID], None, pbar_stack)
                 pbar.set_description(song[TRACK][NAME])
@@ -315,7 +304,7 @@ def client(args: Namespace) -> None:
         else:
             # this seems unnecessay, but the original code had this check so it gets to live another day
             if regex_input_for_urls(args.search, non_global=True) != (None, None, None, None, None, None):
-                Printer.print(PrintChannel.WARNINGS, "###   WARNING:  URL DETECTED IN SEARCH, TREATING SEARCH AS URL REQUEST   ###")
+                Printer.hashtaged(PrintChannel.WARNING, 'URL DETECTED IN SEARCH, TREATING SEARCH AS URL REQUEST')
                 download_from_urls([args.search])
             else:
                 search(args.search)

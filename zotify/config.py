@@ -148,7 +148,7 @@ class Config:
             if cls.Values[DEBUG] == False: del cls.Values[DEBUG]
             with open(full_config_path, 'w', encoding='utf-8') as config_file:
                 json.dump(cls.get_default_json(), config_file, indent=4)
-            Printer.print(PrintChannel.MANDATORY, f"###   config.json saved to {full_config_path.resolve().parent}   ###\n")
+            Printer.hashtaged(PrintChannel.MANDATORY, f"config.json saved to {full_config_path.resolve().parent}")
         else:
             with open(full_config_path, encoding='utf-8') as config_file:
                 jsonvalues: dict[str, dict[str, Any]] = json.load(config_file)
@@ -168,19 +168,19 @@ class Config:
                 full_config_path = full_config_path.parent / (full_config_path.stem + "_DEBUG.json")
             with open(full_config_path, 'w' if full_config_path.exists() else 'x', encoding='utf-8') as debug_file:
                 json.dump(cls.parse_config_jsonstr(), debug_file, indent=4)
-            Printer.print(PrintChannel.MANDATORY, f"###   {full_config_path.name} saved to {full_config_path.resolve().parent}   ###\n")
+            Printer.hashtaged(PrintChannel.MANDATORY, f"{full_config_path.name} saved to {full_config_path.resolve().parent}")
         
         # Override config from commandline arguments
         for key in CONFIG_VALUES:
             if key.lower() in vars(args) and vars(args)[key.lower()] is not None:
-                # Printer.print(f"{key} {cls.Values[key]} -> {cls.parse_arg_value(key, vars(args)[key.lower()])}")
+                # Printer.debug(f"{key} {cls.Values[key]} -> {cls.parse_arg_value(key, vars(args)[key.lower()])}")
                 cls.Values[key] = cls.parse_arg_value(key, vars(args)[key.lower()])
         
         # Confirm regex patterns
-        if cls.debug() and cls.get_regex_enabled():
+        if cls.get_regex_enabled():
             for mode in ["Track", "Episode", "Album"]:
                 regex_method: Callable[[None], None | re.Pattern] = getattr(cls, f"get_regex_{mode.lower()}")
-                if regex_method(): Printer.debug(f'###   {mode} Regex Filter:  r"{regex_method().pattern}"   ###')
+                if regex_method(): Printer.hashtaged(PrintChannel.MANDATORY, f'{mode} Regex Filter:  r"{regex_method().pattern}"')
         
         # Check no-splash
         if args.no_splash:

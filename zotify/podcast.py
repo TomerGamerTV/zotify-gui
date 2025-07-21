@@ -12,7 +12,7 @@ def get_episode_info(episode_id: str) -> tuple[str | None, str | None, str | Non
     with Loader(PrintChannel.PROGRESS_INFO, "Fetching episode information..."):
         (raw, resp) = Zotify.invoke_url(f'{EPISODE_INFO_URL}/{episode_id}')
     if not resp:
-        Printer.print(PrintChannel.ERRORS, "###   ERROR:  INVALID EPISODE ID   ###")
+        Printer.hashtaged(PrintChannel.ERROR, 'INVALID EPISODE ID')
     if ERROR in resp:
         return None, None, None
     duration_ms = resp[DURATION_MS]
@@ -67,19 +67,17 @@ def download_show(show_id, pbar_stack: list | None = None):
 
 def download_episode(episode_id, pbar_stack: list | None = None) -> None:
     
-    Printer.print(PrintChannel.MANDATORY, "\n")
-    
     podcast_name, duration_ms, episode_name = get_episode_info(episode_id)
     
     if podcast_name is None or episode_name is None or duration_ms is None:
-        Printer.print(PrintChannel.ERRORS, '###   ERROR:  SKIPPING EPISODE - FAILED TO QUERY METADATA   ###\n' +\
-                                          f'###   Episode_ID: {str(episode_id)}   ###')
+        Printer.hashtaged(PrintChannel.ERROR, 'SKIPPING EPISODE - FAILED TO QUERY METADATA\n' +\
+                                             f'Episode_ID: {str(episode_id)}')
     elif Zotify.CONFIG.get_regex_episode():
         regex_match = Zotify.CONFIG.get_regex_episode().search(episode_name)
         if regex_match:
-            Printer.print(PrintChannel.SKIPS, '###   SKIPPING:  EPISODE MATCHES REGEX FILTER   ###\n' +\
-                                             f'###   Episode_Name: {episode_name} - Episode_ID: {episode_id}   ###\n'+\
-                                            (f'###   Regex Groups: {regex_match.groupdict()}   ###\n' if regex_match.groups() else ""))
+            Printer.hashtaged(PrintChannel.SKIPPING, 'EPISODE MATCHES REGEX FILTER\n' +\
+                                                    f'Episode_Name: {episode_name} - Episode_ID: {episode_id}\n'+\
+                                                   (f'Regex Groups: {regex_match.groupdict()}' if regex_match.groups() else ""))
     else:
         prepare_download_loader = Loader(PrintChannel.PROGRESS_INFO, "Preparing download...")
         prepare_download_loader.start()
@@ -98,8 +96,8 @@ def download_episode(episode_id, pbar_stack: list | None = None) -> None:
             stream = Zotify.get_content_stream(episode_id, Zotify.DOWNLOAD_QUALITY)
             
             if stream is None:
-                Printer.print(PrintChannel.ERRORS, '###   ERROR:  SKIPPING EPISODE - FAILED TO GET CONTENT STREAM   ###\n' +\
-                                                  f'###   Episode_ID: {str(episode_id)}   ###')
+                Printer.hashtaged(PrintChannel.ERROR, 'SKIPPING EPISODE - FAILED TO GET CONTENT STREAM\n' +\
+                                                     f'Episode_ID: {str(episode_id)}')
             
             else:
                 total_size = stream.input_stream.size
@@ -110,7 +108,7 @@ def download_episode(episode_id, pbar_stack: list | None = None) -> None:
                     and Zotify.CONFIG.get_skip_existing()
                 ):
                     prepare_download_loader.stop()
-                    Printer.print(PrintChannel.SKIPS, f'###   SKIPPING:  "{podcast_name} - {episode_name}" (EPISODE ALREADY EXISTS)   ###')
+                    Printer.hashtaged(PrintChannel.SKIPPING, f'"{podcast_name} - {episode_name}" (EPISODE ALREADY EXISTS)')
                     return
                 
                 prepare_download_loader.stop()
@@ -143,8 +141,8 @@ def download_episode(episode_id, pbar_stack: list | None = None) -> None:
                 time_dl_end = time.time()
                 time_elapsed_dl = fmt_duration(time_dl_end - time_start)
                 
-                Printer.print(PrintChannel.DOWNLOADS, f'###   DOWNLOADED: "{Path(filename).relative_to(Zotify.CONFIG.get_root_path())}"   ###\n' +\
-                                                      f'###   DOWNLOAD TOOK {time_elapsed_dl}   ###')
+                Printer.hashtaged(PrintChannel.DOWNLOADS, f'DOWNLOADED: "{Path(filename).relative_to(Zotify.CONFIG.get_root_path())}"\n' +\
+                                                          f'DOWNLOAD TOOK {time_elapsed_dl}')
                 
                 wait_between_downloads()
         else:

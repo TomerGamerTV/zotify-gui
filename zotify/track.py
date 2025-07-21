@@ -10,7 +10,7 @@ from zotify.const import TRACKS, ALBUM, GENRES, NAME, DISC_NUMBER, TRACK_NUMBER,
     IS_PLAYABLE, ARTISTS, IMAGES, URL, RELEASE_DATE, ID, TRACKS_URL, TRACK_STATS_URL, \
     CODEC_MAP, EXT_MAP, DURATION_MS, ARTISTS, WIDTH, COMPILATION, ALBUM_TYPE, ARTIST_BULK_URL
 from zotify.config import EXPORT_M3U8
-from zotify.termoutput import Printer, PrintChannel, Loader, ACTIVE_LOADER
+from zotify.termoutput import Printer, PrintChannel, Loader
 from zotify.utils import fix_filename, set_audio_tags, set_music_thumbnail, create_download_directory, \
     add_to_m3u8, fetch_m3u8_songs, get_directory_song_ids, add_to_directory_song_archive, \
     get_archived_song_ids, add_to_song_archive, fmt_duration, wait_between_downloads, conv_artist_format
@@ -59,7 +59,7 @@ def get_track_info(track_id) -> tuple[list[str], list[Any], str, str, str, Any, 
 
 def get_track_genres(artist_ids: list[str], track_name: str) -> list[str]:
     if Zotify.CONFIG.get_save_genres():
-        with Loader(PrintChannel.PROGRESS_INFO, "Fetching artist information..."):
+        with Loader(PrintChannel.PROGRESS_INFO, "Fetching genre information..."):
             
             artists = Zotify.invoke_url_bulk(ARTIST_BULK_URL, artist_ids, ARTISTS)
             
@@ -69,8 +69,8 @@ def get_track_genres(artist_ids: list[str], track_name: str) -> list[str]:
                     genres.update(artist[GENRES])
         
         if len(genres) == 0:
-            Printer.print(PrintChannel.WARNINGS, "###   WARNING:  NO GENRES FOUND   ###\n" +\
-                                                f"###   Track_Name: {track_name}   ###"+"\n"*2)
+            Printer.hashtaged(PrintChannel.WARNING, 'NO GENRES FOUND\n' +\
+                                                   f'Track_Name: {track_name}')
             genres = ['']
         else:
             genres = list(genres)
@@ -101,7 +101,6 @@ def get_track_lyrics(track_id: str) -> list[str]:
                 ts = fmt_duration(timestamp // 1, (60, 100), (':', '.'), "cs", True)
                 Printer.debug(f"{timestamp}".zfill(5) + f" {ts.split(':')[0]} {ts.split(':')[1].replace('.', ' ')}")
                 lyrics.append(f'[{ts}]' + line['words'] + '\n')
-            Printer.debug("\n")
         return lyrics
     raise ValueError(f'Failed to fetch lyrics: {track_id}')
 
@@ -147,8 +146,7 @@ def handle_lyrics(track_id: str, track_name: str, filedir: PurePath,
             file.writelines(lyrics)
         
     except ValueError:
-        Printer.print(PrintChannel.SKIPS, f'###   SKIPPING:  LYRICS FOR "{track_name}" (LYRICS NOT AVAILABLE)   ###')
-        if not ACTIVE_LOADER: Printer.print(PrintChannel.SKIPS, "\n\n")
+        Printer.hashtaged(PrintChannel.SKIPPING, f'LYRICS FOR "{track_name}" (LYRICS NOT AVAILABLE)')
     return lyrics
 
 
@@ -168,20 +166,17 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                 album_id = info[TRACKS][0][ALBUM][ID]
                 total_tracks = info[TRACKS][0][ALBUM][TOTAL_TRACKS]
             except:
-                Printer.print(PrintChannel.ERRORS, '###   ERROR:  FAILED TO FIND PARENT ALBUM   ###\n' +\
-                                                  f'###   Track_ID: {track_id}   ###')
+                Printer.hashtaged(PrintChannel.ERROR, 'FAILED TO FIND PARENT ALBUM\n' +\
+                                                     f'Track_ID: {track_id}')
             
             if album_id and total_tracks and int(total_tracks) > 1:
                 from zotify.album import download_album
                 # uses album OUTPUT template for filename formatting, but handle m3u8 as if only this track was downloaded
                 download_album(album_id, pbar_stack, M3U8_bypass=(mode, track_id))
-                Printer.print(PrintChannel.MANDATORY, "\n")
                 return
     
     if extra_keys is None:
         extra_keys = {}
-    
-    Printer.print(PrintChannel.MANDATORY, "\n")
     
     try:
         output_template = Zotify.CONFIG.get_output(mode)
@@ -195,14 +190,13 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
         if Zotify.CONFIG.get_regex_track():
             regex_match = Zotify.CONFIG.get_regex_track().search(name)
             Printer.debug("Regex Check\n" +\
-                     f"Pattern: {Zotify.CONFIG.get_regex_track().pattern}\n" +\
-                     f"Song Name: {name}\n" +\
-                     f"Match Object: {regex_match}"+"\n"*3)
+                         f"Pattern: {Zotify.CONFIG.get_regex_track().pattern}\n" +\
+                         f"Song Name: {name}\n" +\
+                         f"Match Object: {regex_match}")
             if regex_match:
-                Printer.print(PrintChannel.SKIPS, '###   SKIPPING:  TRACK MATCHES REGEX FILTER   ###\n' +\
-                                                 f'###   Track_Name: {name} - Track_ID: {track_id}   ###\n'+\
-                                                (f'###   Regex Groups: {regex_match.groupdict()}   ###\n' if regex_match.groups() else ""))
-                Printer.print(PrintChannel.MANDATORY, "\n")
+                Printer.hashtaged(PrintChannel.SKIPPING, 'TRACK MATCHES REGEX FILTER\n' +\
+                                                        f'Track_Name: {name} - Track_ID: {track_id}\n'+\
+                                                       (f'Regex Groups: {regex_match.groupdict()}\n' if regex_match.groups() else ""))
                 return
         
         prepare_download_loader = Loader(PrintChannel.PROGRESS_INFO, "Preparing download...")
@@ -267,8 +261,8 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
     except Exception as e:
         if "prepare_download_loader" in locals():
             prepare_download_loader.stop()
-        Printer.print(PrintChannel.ERRORS, '###   ERROR:  SKIPPING SONG - FAILED TO QUERY METADATA   ###\n' +\
-                                          f'###   Track_ID: {track_id}   ###')
+        Printer.hashtaged(PrintChannel.ERROR, 'SKIPPING SONG - FAILED TO QUERY METADATA\n' +\
+                                             f'Track_ID: {track_id}')
         Printer.json_dump(extra_keys)
         Printer.traceback(e)
     
@@ -276,19 +270,19 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
         try:
             if not is_playable:
                 prepare_download_loader.stop()
-                Printer.print(PrintChannel.SKIPS, f'###   SKIPPING:  "{track_name}" (TRACK IS UNAVAILABLE)   ###')
+                Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_name}" (TRACK IS UNAVAILABLE)')
             else:
                 if check_name and Zotify.CONFIG.get_skip_existing() and Zotify.CONFIG.get_disable_directory_archives():
                     prepare_download_loader.stop()
-                    Printer.print(PrintChannel.SKIPS, f'###   SKIPPING:  "{filename}" (FILE ALREADY EXISTS)   ###')
+                    Printer.hashtaged(PrintChannel.SKIPPING, f'"{PurePath(filename).relative_to(Zotify.CONFIG.get_root_path())}" (FILE ALREADY EXISTS)')
                 
                 elif check_local and Zotify.CONFIG.get_skip_existing() and not Zotify.CONFIG.get_disable_directory_archives():
                     prepare_download_loader.stop()
-                    Printer.print(PrintChannel.SKIPS, f'###   SKIPPING:  "{track_name}" (TRACK ALREADY EXISTS)   ###')
+                    Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_name}" (TRACK ALREADY EXISTS)')
                 
                 elif check_all_time and Zotify.CONFIG.get_skip_previously_downloaded():
                     prepare_download_loader.stop()
-                    Printer.print(PrintChannel.SKIPS, f'###   SKIPPING:  "{track_name}" (TRACK ALREADY DOWNLOADED ONCE)   ###')
+                    Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_name}" (TRACK ALREADY DOWNLOADED ONCE)')
                 
                 else:
                     if track_id != scraped_track_id:
@@ -297,9 +291,8 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                     stream = Zotify.get_content_stream(track, Zotify.DOWNLOAD_QUALITY)
                     if stream is None:
                         prepare_download_loader.stop()
-                        Printer.print(PrintChannel.ERRORS, '###   ERROR:  SKIPPING SONG - FAILED TO GET CONTENT STREAM   ###\n' +\
-                                                          f'###   Track_ID: {track_id}   ###')
-                        Printer.print(PrintChannel.MANDATORY, "\n\n")
+                        Printer.hashtaged(PrintChannel.ERROR, 'SKIPPING SONG - FAILED TO GET CONTENT STREAM\n' +\
+                                                             f'Track_ID: {track_id}')
                         return
                     create_download_directory(filedir)
                     total_size = stream.input_stream.size
@@ -332,27 +325,22 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                                     time.sleep(delta_want - delta_real)
                     
                     time_dl_end = time.time()
+                    time_elapsed_dl = fmt_duration(time_dl_end - time_start)
                     
                     genres = get_track_genres(artist_ids, name)
                     
-                    # add blank line (for spacing) if no genres warning is printed
-                    if genres == ['']: Printer.print(PrintChannel.WARNINGS, "\n")
-                    
                     lyrics = handle_lyrics(track_id, track_name, filedir, name, artists, album_name, duration_ms)
                     
-                    # add blank line (for spacing) if no genres warning is printed and debug is enabled
-                    if genres == ['']: Printer.debug("\n") 
-                    
                     # no metadata is written to track prior to conversion
-                    convert_audio_format(filename_temp)
+                    time_elapsed_ffmpeg = convert_audio_format(filename_temp)
                     
                     try:
                         set_audio_tags(filename_temp, artists, genres, name, album_name, album_artist, release_year, 
                                        disc_number, track_number, total_tracks, total_discs, compilation, lyrics)
                         set_music_thumbnail(filename_temp, image_url, mode)
                     except Exception as e:
-                        Printer.print(PrintChannel.ERRORS, "###   ERROR:  FAILED TO WRITE METADATA   ###\n" +\
-                                                           "###   Ensure FFMPEG is installed and added to your PATH   ###")
+                        Printer.hashtaged(PrintChannel.ERROR, 'FAILED TO WRITE METADATA\n' +\
+                                                              'Ensure FFMPEG is installed and added to your PATH')
                         Printer.traceback(e)
                     
                     if filename_temp != filename:
@@ -360,12 +348,8 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                             Path(filename).unlink()
                         Path(filename_temp).rename(filename)
                     
-                    time_ffmpeg_end = time.time()
-                    time_elapsed_dl = fmt_duration(time_dl_end - time_start)
-                    time_elapsed_ffmpeg = fmt_duration(time_ffmpeg_end - time_dl_end)
-                    
-                    Printer.print(PrintChannel.DOWNLOADS, f'###   DOWNLOADED: "{Path(filename).relative_to(Zotify.CONFIG.get_root_path())}"   ###\n' +\
-                                                          f'###   DOWNLOAD TOOK {time_elapsed_dl} (PLUS {time_elapsed_ffmpeg} CONVERTING)   ###')
+                    Printer.hashtaged(PrintChannel.DOWNLOADS, f'DOWNLOADED: "{PurePath(filename).relative_to(Zotify.CONFIG.get_root_path())}"\n' +\
+                                                              f'DOWNLOAD TOOK {time_elapsed_dl} (PLUS {time_elapsed_ffmpeg} CONVERTING)')
                     
                     # add song ID to global .song_archive file
                     if not check_all_time:
@@ -377,16 +361,14 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                     wait_between_downloads()
             
         except Exception as e:
-            Printer.print(PrintChannel.ERRORS, '###   ERROR:  SKIPPING SONG - GENERAL DOWNLOAD ERROR   ###\n' +\
-                                              f'###   Track_Name: {track_name} - Track_ID: {track_id}   ###')
+            Printer.hashtaged(PrintChannel.ERROR, 'SKIPPING SONG - GENERAL DOWNLOAD ERROR\n' +\
+                                                 f'Track_Name: {track_name} - Track_ID: {track_id}')
             Printer.json_dump(extra_keys)
             Printer.traceback(e)
             if Path(filename_temp).exists():
                 Path(filename_temp).unlink()
         
         prepare_download_loader.stop()
-    
-    Printer.print(PrintChannel.MANDATORY, "\n")
 
 
 def convert_audio_format(filename) -> None:
@@ -412,6 +394,7 @@ def convert_audio_format(filename) -> None:
     if bitrate is not None:
         output_params += ['-b:a', bitrate]
     
+    time_ffmpeg_start = time.time()
     try:
         ff_m = ffmpy.FFmpeg(
             global_options=['-y', '-hide_banner', f'-loglevel {Zotify.CONFIG.get_ffmpeg_log_level()}'],
@@ -423,7 +406,10 @@ def convert_audio_format(filename) -> None:
         
         if Path(temp_filename).exists():
             Path(temp_filename).unlink()
-    
+        
     except ffmpy.FFExecutableNotFoundError:
-        Printer.print(PrintChannel.WARNINGS, '###   WARNING:  FFMPEG NOT FOUND   ###\n' +\
-                                            f'###   SKIPPING CONVERSION TO {file_codec.upper()}  ###')
+        Printer.hashtaged(PrintChannel.WARNING, 'FFMPEG NOT FOUND\n' +\
+                                               f'SKIPPING CONVERSION TO {file_codec.upper()}')
+    
+    time_ffmpeg_end = time.time()
+    return fmt_duration(time_ffmpeg_end - time_ffmpeg_start)

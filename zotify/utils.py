@@ -218,7 +218,7 @@ def wait_between_downloads() -> None:
         return
     
     if waittime > 5:
-        Printer.print(PrintChannel.DOWNLOADS, f'###   PAUSED: WAITING FOR {waittime} SECONDS BETWEEN DOWNLOADS   ###')
+        Printer.hashtaged(PrintChannel.DOWNLOADS, f'PAUSED: WAITING FOR {waittime} SECONDS BETWEEN DOWNLOADS')
     sleep(waittime)
 
 

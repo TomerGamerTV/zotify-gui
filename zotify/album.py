@@ -1,5 +1,5 @@
 from zotify.const import ALBUM_URL, ARTIST_URL, ITEMS, ARTISTS, NAME, ID, DISC_NUMBER, ALBUM_TYPE, COMPILATION, AVAIL_MARKETS
-from zotify.termoutput import Printer, PrintChannel
+from zotify.termoutput import Printer, PrintChannel, Loader
 from zotify.track import download_track
 from zotify.utils import fix_filename
 from zotify.zotify import Zotify
@@ -16,8 +16,6 @@ def get_album_info(album_id: str) -> tuple[str, str, list[dict], int, bool]:
     
     tracks = Zotify.invoke_url_nextable(f'{ALBUM_URL}/{album_id}/tracks', ITEMS)
     
-    # Printer.json_dump(resp, PrintChannel.DEBUG)
-    
     total_discs = tracks[-1][DISC_NUMBER]
     
     return album_name, album_artist, tracks, total_discs, compilation
@@ -25,10 +23,10 @@ def get_album_info(album_id: str) -> tuple[str, str, list[dict], int, bool]:
 
 def get_artist_album_ids(artist_id):
     """ Returns artist's albums """
-    
-    # excludes "appears_on" and "compilations"
-    url = f'{ARTIST_URL}/{artist_id}/albums?include_groups=album%2Csingle'
-    simple_albums = Zotify.invoke_url_nextable(url, ITEMS)
+    with Loader(PrintChannel.PROGRESS_INFO, "Fetching artist information..."):
+        # excludes "appears_on" and "compilations"
+        url = f'{ARTIST_URL}/{artist_id}/albums?include_groups=album%2Csingle'
+        simple_albums = Zotify.invoke_url_nextable(url, ITEMS)
     
     return [album[ID] for album in simple_albums]
 
@@ -54,17 +52,15 @@ def download_album(album_id: str, pbar_stack: list | None = None, M3U8_bypass: s
     char_num = max({len(str(len(tracks))), 2})
     
     if Zotify.CONFIG.get_skip_comp_albums() and compilation:
-        Printer.print(PrintChannel.SKIPS, '###   SKIPPING:  ALBUM IS A COMPILATION   ###\n' +\
-                                         f'###   Album_Name: {album_name} - Album_ID: {album_id}   ###')
-        Printer.print(PrintChannel.MANDATORY, "\n")
+        Printer.hashtaged(PrintChannel.SKIPPING, 'ALBUM IS A COMPILATION\n' +\
+                                             f'Album_Name: {album_name} - Album_ID: {album_id}')
         return False
     elif Zotify.CONFIG.get_regex_album():
         regex_match = Zotify.CONFIG.get_regex_album().search(album_name)
         if regex_match:
-            Printer.print(PrintChannel.SKIPS, '###   SKIPPING:  ALBUM MATCHES REGEX FILTER   ###\n' +\
-                                             f'###   Album_Name: {album_name} - Album_ID: {album_id}   ###\n'+\
-                                            (f'###   Regex Groups: {regex_match.groupdict()}   ###\n' if regex_match.groups() else ""))
-            Printer.print(PrintChannel.MANDATORY, "\n")
+            Printer.hashtaged(PrintChannel.SKIPPING, 'ALBUM MATCHES REGEX FILTER\n' +\
+                                                    f'Album_Name: {album_name} - Album_ID: {album_id}\n'+\
+                                                   (f'Regex Groups: {regex_match.groupdict()}\n' if regex_match.groups() else ""))
             return False
     
     pos, pbar_stack = Printer.pbar_position_handler(3, pbar_stack)

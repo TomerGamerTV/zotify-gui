@@ -20,8 +20,7 @@ class Zotify:
     
     def __init__(self, args):
         Zotify.CONFIG.load(args)
-        Printer.print(PrintChannel.MANDATORY, "\n\n\n")
-        login_loader = Loader(PrintChannel.MANDATORY, "Logging in...", end="\n")
+        login_loader = Loader(PrintChannel.MANDATORY, "Logging in...")
         login_loader.start()
         Zotify.login(args)
         login_loader.stop()
@@ -48,7 +47,7 @@ class Zotify:
                 username = input("Username: ")
             oauth = OAuth(username, *cls.CONFIG.get_oauth_addresses())
             auth_url = oauth.auth_interactive()
-            Printer.print(PrintChannel.MANDATORY, f"Click on the following link to login:\n{auth_url}")
+            Printer.new_print(PrintChannel.MANDATORY, f"Click on the following link to login:\n{auth_url}")
             cls.SESSION = Session.from_oauth(
                 oauth, cls.CONFIG.get_credentials_location(), cls.CONFIG.get_language()
             )
@@ -60,10 +59,10 @@ class Zotify:
         except RuntimeError as e:
             if 'Failed fetching audio key!' in e.args[0]:
                 gid, fileid = e.args[0].split('! ')[1].split(', ')
-                Printer.print(PrintChannel.ERRORS, '###   ERROR:  FAILED TO FETCH AUDIO KEY   ###\n' +\
-                                                   '###   MAY BE CAUSED BY RATE LIMITS - CONSIDER INCREASING `BULK_WAIT_TIME`   ###\n' +\
-                                                  f'###   GID: {gid[5:]} - File_ID: {fileid[8:]}   ###')
-            else:
+                Printer.hashtaged(PrintChannel.ERROR, 'FAILED TO FETCH AUDIO KEY\n' +\
+                                                      'MAY BE CAUSED BY RATE LIMITS - CONSIDER INCREASING `BULK_WAIT_TIME`\n' +\
+                                                     f'GID: {gid[5:]} - File_ID: {fileid[8:]}')
+            else:        
                 raise e
     
     @classmethod
@@ -87,7 +86,7 @@ class Zotify:
         headers = cls.get_auth_header()
         
         tryCount = 0
-        while tryCount < cls.CONFIG.get_retry_attempts():
+        while tryCount <= cls.CONFIG.get_retry_attempts():
             response = requests.get(url, headers=headers, params=_params)
             
             try:
@@ -101,8 +100,8 @@ class Zotify:
             
             if not responsejson or 'error' in responsejson:
                 if not expectFail: 
-                    Printer.print(PrintChannel.WARNINGS, f"###   WARNING:  API ERROR (TRY {tryCount}) - RETRYING   ###\n" +\
-                                                         f"###   {responsejson['error']['status']}: {responsejson['error']['message']}")
+                    Printer.hashtaged(PrintChannel.WARNING, f'API ERROR (TRY {tryCount}) - RETRYING\n' +\
+                                                            f'{responsejson["error"]["status"]}: {responsejson["error"]["message"]}')
                 sleep(5 if not expectFail else 1)
                 tryCount += 1
                 continue
@@ -110,8 +109,8 @@ class Zotify:
                 return responsetext, responsejson
         
         if not expectFail:
-            Printer.print(PrintChannel.API_ERRORS, f"###   API ERROR:  API ERROR (TRY {tryCount}) - RETRY LIMIT EXCEDED   ###\n" +\
-                                                   f"###   {responsejson['error']['status']}: {responsejson['error']['message']}")
+            Printer.hashtaged(PrintChannel.API_ERROR, f'API ERROR (TRY {tryCount}) - RETRY LIMIT EXCEDED\n' +\
+                                                      f'{responsejson["error"]["status"]}: {responsejson["error"]["message"]}')
         
         return responsetext, responsejson
     

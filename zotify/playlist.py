@@ -72,10 +72,7 @@ def download_from_user_playlist():
     
     users_playlists = Zotify.invoke_url_nextable(USER_PLAYLISTS_URL, ITEMS)
     
-    count = 1
-    for playlist in users_playlists:
-        Printer.print(PrintChannel.MANDATORY, str(count) + ': ' + playlist[NAME].strip())
-        count += 1
+    Printer.table("PLAYLISTS", ('ID', 'Name'), [ [i+1, playlist[NAME].strip()] for i, playlist in enumerate(users_playlists)])
     
     selection = ''
     Printer.search_select()
