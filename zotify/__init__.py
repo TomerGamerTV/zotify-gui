@@ -29,38 +29,7 @@ from requests import HTTPError, get, post
 from logging import getLogger
 getLogger("Librespot:AudioKeyManager").disabled = True
 
-
-API_URL = "https://api.sp" + "otify.com/v1/"
-AUTH_URL = "https://accounts.sp" + "otify.com/"
-CLIENT_ID = "65b70807" + "3fc0480e" + "a92a0772" + "33ca87bd"
-SCOPES = [
-    "app-remote-control",
-    "playlist-modify",
-    "playlist-modify-private",
-    "playlist-modify-public",
-    "playlist-read",
-    "playlist-read-collaborative",
-    "playlist-read-private",
-    "streaming",
-    "ugc-image-upload",
-    "user-follow-modify",
-    "user-follow-read",
-    "user-library-modify",
-    "user-library-read",
-    "user-modify",
-    "user-modify-playback-state",
-    "user-modify-private",
-    "user-personalized",
-    "user-read-birthdate",
-    "user-read-currently-playing",
-    "user-read-email",
-    "user-read-play-history",
-    "user-read-playback-position",
-    "user-read-playback-state",
-    "user-read-private",
-    "user-read-recently-played",
-    "user-top-read",
-]
+from zotify.const import AUTH_URL, BASE_URL, CLIENT_ID, SCOPES
 
 
 class Session(LibrespotSession):
@@ -133,9 +102,9 @@ class Session(LibrespotSession):
             config.set_stored_credential_file(str(save_file))
         else:
             config.set_store_credentials(False)
-
+        
         token = oauth.await_token()
-
+        
         builder = LibrespotSession.Builder(config.build())
         builder.login_credentials = Authentication.LoginCredentials(
             username=oauth.username,
@@ -184,7 +153,7 @@ class ApiClient(LibrespotApiClient):
     def __init__(self, session: Session):
         super(ApiClient, self).__init__(session)
         self.__session = session
-
+    
     def invoke_url(
         self,
         url: str,
@@ -210,17 +179,17 @@ class ApiClient(LibrespotApiClient):
         }
         params["limit"] = limit
         params["offset"] = offset
-
-        response = get(API_URL + url, headers=headers, params=params)
+        
+        response = get(BASE_URL + url, headers=headers, params=params)
         data = response.json()
-
+        
         try:
             raise HTTPError(
                 f"{url}\nAPI Error {data['error']['status']}: {data['error']['message']}"
             )
         except KeyError:
             return data
-
+    
     def __get_token(self) -> str:
         return (
             self.__session.tokens()
@@ -238,13 +207,13 @@ class TokenProvider(LibrespotTokenProvider):
     def __init__(self, session: Session):
         super(TokenProvider, self).__init__(session)
         self._session = session
-
+    
     def get_token(self, *scopes) -> TokenProvider.StoredToken:
         oauth = self._session.oauth()
         if oauth is None:
             return super().get_token(*scopes)
         return oauth.get_token()
-
+    
     class StoredToken(LibrespotTokenProvider.StoredToken):
         def __init__(self, obj):
             self.timestamp = int(time_ns() / 1000)

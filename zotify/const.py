@@ -43,22 +43,19 @@ TRACKS = 'tracks'
 TRACK_NUMBER = 'track_number'
 URL = 'url'
 WIDTH = 'width'
+LIMIT = 'limit'
+OFFSET = 'offset'
 
 # Both
 TYPE = 'type'
 
 # API Account Attributes
-AUTHORIZATION = 'Authorization'
-LIMIT = 'limit'
-OFFSET = 'offset'
-PLAYLIST_READ_PRIVATE = 'playlist-read-private'
+CLIENT_ID = "65b70807" + "3fc0480e" + "a92a0772" + "33ca87bd"
 PREMIUM = 'premium'
-USER_FOLLOW_READ = 'user-follow-read'
-USER_LIBRARY_READ = 'user-library-read'
-USER_READ_EMAIL = 'user-read-email'
 
 # API URLs
-BASE_URL = 'https://api.sp'+'otify.com/v1/'
+AUTH_URL = "https://accounts.sp" + "otify.com/"
+BASE_URL = 'https://api.sp' + 'otify.com/v1/'
 ALBUM_URL = BASE_URL + 'albums'
 ARTIST_URL = BASE_URL + 'artists'
 ARTIST_BULK_URL = ARTIST_URL + '?ids='
@@ -72,8 +69,42 @@ TRACK_STATS_URL = BASE_URL + 'audio-features/'
 USER_FOLLOWED_ARTISTS_URL = BASE_URL + 'me/following?type=artist'
 USER_PLAYLISTS_URL = BASE_URL + 'me/playlists'
 USER_SAVED_TRACKS_URL = BASE_URL + 'me/tracks'
-PARTNER_URL = 'https://api-partner.sp'+'otify.com/pathfinder/v1/query?operationName=getEpisode&variables={"uri":"sp'+'otify:episode:'
-PERSISTED_QUERY = '{"persistedQuery":{"version":1,"sha256Hash":"224ba0fd89fcfdfb3a15fa2d82a6112d3f4e2ac88fba5c6713de04d1b72cf482"}}'
+PARTNER_URL = 'https://api-partner.sp' + 'otify.com/pathfinder/v1/query?operationName=getEpisode&variables={"uri":"sp' + 'otify:episode:'
+PERSISTED_QUERY = '{"persistedQuery":{"version":1,"sha256Hash":"224ba0fd89fcfdfb'+'3a15fa2d82a6112d'+'3f4e2ac88fba5c67'+'13de04d1b72cf482"}}'
+
+# API Scopes
+PLAYLIST_READ_PRIVATE = 'playlist-read-private'
+USER_FOLLOW_READ = 'user-follow-read'
+USER_LIBRARY_READ = 'user-library-read'
+USER_READ_EMAIL = 'user-read-email'
+SCOPES = [
+    "app-remote-control",
+    "playlist-modify",
+    "playlist-modify-private",
+    "playlist-modify-public",
+    "playlist-read",
+    "playlist-read-collaborative",
+    "playlist-read-private",
+    "streaming",
+    "ugc-image-upload",
+    "user-follow-modify",
+    "user-follow-read",
+    "user-library-modify",
+    "user-library-read",
+    "user-modify",
+    "user-modify-playback-state",
+    "user-modify-private",
+    "user-personalized",
+    "user-read-birthdate",
+    "user-read-currently-playing",
+    "user-read-email",
+    "user-read-play-history",
+    "user-read-playback-position",
+    "user-read-playback-state",
+    "user-read-private",
+    "user-read-recently-played",
+    "user-top-read",
+]
 
 # System Constants
 LINUX_SYSTEM = 'Linux'
@@ -100,6 +131,7 @@ EXT_MAP = {
 }
 
 # Config Keys
+MANDATORY = 'MANDATORY'
 DEBUG = "DEBUG"
 ROOT_PATH = 'ROOT_PATH'
 ROOT_PODCAST_PATH = 'ROOT_PODCAST_PATH'
@@ -164,4 +196,3 @@ REGEX_TRACK_SKIP = 'REGEX_TRACK_SKIP'
 REGEX_EPISODE_SKIP = 'REGEX_EPISODE_SKIP'
 REGEX_ALBUM_SKIP = 'REGEX_ALBUM_SKIP'
 LYRICS_MD_HEADER = 'LYRICS_MD_HEADER'
-MANDATORY = 'MANDATORY'
