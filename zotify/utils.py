@@ -75,7 +75,7 @@ def regex_input_for_urls(search_input: str, non_global: bool = False) -> tuple[
     return tuple(result)
 
 
-def split_sanitize_input(raw_input: str) -> list[int]:
+def split_sanitize_intrange(raw_input: str) -> list[int]:
     """ Returns a list of IDs from a string input, including ranges and single IDs """
     
     # removes all non-numeric characters except for commas and hyphens

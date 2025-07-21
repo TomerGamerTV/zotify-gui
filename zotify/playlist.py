@@ -2,7 +2,7 @@ from zotify.const import USER_PLAYLISTS_URL, PLAYLISTS_URL, ITEMS, ID, TRACK, NA
 from zotify.podcast import download_episode
 from zotify.termoutput import Printer, PrintChannel
 from zotify.track import download_track
-from zotify.utils import split_sanitize_input, strptime_utc
+from zotify.utils import split_sanitize_intrange, strptime_utc
 from zotify.zotify import Zotify
 
 
@@ -73,12 +73,8 @@ def download_from_user_playlist():
     users_playlists = Zotify.invoke_url_nextable(USER_PLAYLISTS_URL, ITEMS)
     
     Printer.table("PLAYLISTS", ('ID', 'Name'), [ [i+1, playlist[NAME].strip()] for i, playlist in enumerate(users_playlists)])
-    
-    selection = ''
     Printer.search_select()
-    while len(selection) == 0:
-        selection = str(input('ID(s): '))
-    playlist_choices = split_sanitize_input(selection)
+    playlist_choices = split_sanitize_intrange(Printer.get_input('ID(s): '))
     
     pos = 5
     pbar = Printer.pbar(playlist_choices, unit='playlist', pos=pos, 

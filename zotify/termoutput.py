@@ -16,6 +16,8 @@ from zotify.const import *
 
 UP_ONE_LINE = "\033[A"
 DOWN_ONE_LINE = "\033[B"
+RIGHT_ONE_COL = "\033[C"
+LEFT_ONE_COL = "\033[D"
 START_OF_PREV_LINE = "\033[F"
 CLEAR_LINE = "\033[K"
 
@@ -81,7 +83,7 @@ class Printer:
         return category.value + msg
     
     @staticmethod
-    def new_print(channel: PrintChannel, msg: str, category: PrintCategory = PrintCategory.NONE, loader: bool = False) -> None:
+    def new_print(channel: PrintChannel, msg: str, category: PrintCategory = PrintCategory.NONE, loader: bool = False, end: str = "\n") -> None:
         global LAST_PRINT
         if channel != PrintChannel.MANDATORY:
             from zotify.zotify import Zotify
@@ -91,10 +93,21 @@ class Printer:
                 ACTIVE_LOADER.pause()
             msg = Printer.print_prefixes(msg, category, channel)
             for line in str(msg).splitlines():
-                tqdm.write(line.ljust(Printer.term_cols()))
+                if end == "\n": 
+                    tqdm.write(line.ljust(Printer.term_cols()))
+                else:
+                    tqdm.write(line, end=end)
                 LAST_PRINT = category
             if not loader and ACTIVE_LOADER:
                 ACTIVE_LOADER.resume()
+    
+    @staticmethod
+    def get_input(prompt: str) -> str:
+        user_input = ""
+        while len(user_input) == 0:
+            Printer.new_print(PrintChannel.MANDATORY, prompt, PrintCategory.GENERAL, end="")
+            user_input = str(input())
+        return user_input
     
     # Print Wrappers
     @staticmethod

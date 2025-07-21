@@ -43,8 +43,8 @@ class Zotify:
             )
         else:
             username = args.username
-            while username == "":
-                username = input("Username: ")
+            if not username:
+                username = Printer.get_input("Username: ")
             oauth = OAuth(username, *cls.CONFIG.get_oauth_addresses())
             auth_url = oauth.auth_interactive()
             Printer.new_print(PrintChannel.MANDATORY, f"Click on the following link to login:\n{auth_url}")

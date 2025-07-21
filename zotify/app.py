@@ -9,7 +9,7 @@ from zotify.playlist import get_playlist_info, download_from_user_playlist, down
 from zotify.podcast import download_episode, download_show
 from zotify.termoutput import Printer, PrintChannel
 from zotify.track import download_track
-from zotify.utils import split_sanitize_input, regex_input_for_urls
+from zotify.utils import split_sanitize_intrange, regex_input_for_urls
 from zotify.zotify import Zotify
 
 
@@ -195,10 +195,7 @@ def search(search_term) -> None:
         return
     
     Printer.search_select()
-    raw_input = ''
-    while len(raw_input) == 0:
-        raw_input = str(input('ID(s): '))
-    choices = split_sanitize_input(raw_input)
+    choices = split_sanitize_intrange(Printer.get_input('ID(s): '))
     
     # Printer.debug(f'###   CHOICES: {choices}   ###')
     if choices == [0]:
@@ -297,10 +294,7 @@ def client(args: Namespace) -> None:
     
     elif args.search:
         if args.search == ' ':
-            search_text = ''
-            while len(search_text) == 0:
-                search_text = input('Enter search: ')
-            search(search_text)
+            search(Printer.get_input('Enter search: '))
         else:
             # this seems unnecessay, but the original code had this check so it gets to live another day
             if regex_input_for_urls(args.search, non_global=True) != (None, None, None, None, None, None):
@@ -311,8 +305,5 @@ def client(args: Namespace) -> None:
         return
     
     else:
-        search_text = ''
-        while len(search_text) == 0:
-            search_text = input('Enter search: ')
-        search(search_text)
+        search(Printer.get_input('Enter search: '))
         return
