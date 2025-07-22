@@ -69,7 +69,7 @@ class Printer:
                 msg = channel.name + ":  " + msg
             msg =  msg.replace("\n", "   ###\n###   ") + "   ###"
         elif category is PrintCategory.JSON:
-            msg = "#" * Printer.term_cols()-1 + "\n" + msg + "\n" + "#" * Printer.term_cols()
+            msg = "#" * (Printer.term_cols()-1) + "\n" + msg + "\n" + "#" * Printer.term_cols()
         
         global LAST_PRINT
         if LAST_PRINT is PrintCategory.DEBUG and category is PrintCategory.DEBUG:
