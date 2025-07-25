@@ -141,7 +141,7 @@ def download_episode(episode_id, pbar_stack: list | None = None) -> None:
                 time_dl_end = time.time()
                 time_elapsed_dl = fmt_duration(time_dl_end - time_start)
                 
-                Printer.hashtaged(PrintChannel.DOWNLOADS, f'DOWNLOADED: "{Path(filename).relative_to(Zotify.CONFIG.get_root_path())}"\n' +\
+                Printer.hashtaged(PrintChannel.DOWNLOADS, f'DOWNLOADED: "{Path(filename).relative_to(Zotify.CONFIG.get_root_podcast_path())}"\n' +\
                                                           f'DOWNLOAD TOOK {time_elapsed_dl}')
                 
                 wait_between_downloads()

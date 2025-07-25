@@ -1,5 +1,5 @@
 from __future__ import annotations
-__version__ = "0.8.22"
+__version__ = "0.8.23"
 
 from enum import IntEnum
 from http.server import BaseHTTPRequestHandler, HTTPServer
