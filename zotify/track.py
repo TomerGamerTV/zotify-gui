@@ -228,19 +228,19 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
         if Zotify.CONFIG.get_temp_download_dir() != '':
             filename_temp = PurePath(Zotify.CONFIG.get_temp_download_dir()).joinpath(f'zotify_{str(uuid.uuid4())}_{track_id}.{ext}')
         
-        check_name = Path(filename).is_file() and Path(filename).stat().st_size
-        check_local = scraped_track_id in get_directory_song_ids(filedir)
-        check_all_time = scraped_track_id in get_archived_song_ids()
+        filename_exists = Path(filename).is_file() and Path(filename).stat().st_size
+        in_dir_songids = scraped_track_id in get_directory_song_ids(filedir)
+        in_global_songids = scraped_track_id in get_archived_song_ids()
         Printer.debug("Duplicate Check\n" +\
-                     f"File Already Exists: {check_name}\n" +\
-                     f"song_id in Local Archive: {check_local}\n" +\
-                     f"song_id in Global Archive: {check_all_time}")
+                     f"File Already Exists: {filename_exists}\n" +\
+                     f"song_id in Local Archive: {in_dir_songids}\n" +\
+                     f"song_id in Global Archive: {in_global_songids}")
         
         # same filename, not same song_id, rename the newcomer
-        if check_name and not check_local and not Zotify.CONFIG.get_disable_directory_archives():
+        if filename_exists and not in_dir_songids and not Zotify.CONFIG.get_disable_directory_archives():
             c = len([file for file in Path(filedir).iterdir() if file.match(filename.stem + "*")])
             filename = PurePath(filedir).joinpath(f'{filename.stem}_{c}{filename.suffix}')
-            check_name = False # new filename guaranteed to be unique
+            filename_exists = False # new filename guaranteed to be unique
         
         liked_m3u8 = child_request_mode == "liked" and Zotify.CONFIG.get_liked_songs_archive_m3u8()
         if Zotify.CONFIG.get_export_m3u8() and track_id == child_request_id:
@@ -272,15 +272,15 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                 prepare_download_loader.stop()
                 Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_name}" (TRACK IS UNAVAILABLE)')
             else:
-                if check_name and Zotify.CONFIG.get_skip_existing() and Zotify.CONFIG.get_disable_directory_archives():
+                if filename_exists and Zotify.CONFIG.get_skip_existing() and Zotify.CONFIG.get_disable_directory_archives():
                     prepare_download_loader.stop()
                     Printer.hashtaged(PrintChannel.SKIPPING, f'"{PurePath(filename).relative_to(Zotify.CONFIG.get_root_path())}" (FILE ALREADY EXISTS)')
                 
-                elif check_local and Zotify.CONFIG.get_skip_existing() and not Zotify.CONFIG.get_disable_directory_archives():
+                elif in_dir_songids and Zotify.CONFIG.get_skip_existing() and not Zotify.CONFIG.get_disable_directory_archives():
                     prepare_download_loader.stop()
                     Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_name}" (TRACK ALREADY EXISTS)')
                 
-                elif check_all_time and Zotify.CONFIG.get_skip_previously_downloaded():
+                elif in_global_songids and Zotify.CONFIG.get_skip_previously_downloaded():
                     prepare_download_loader.stop()
                     Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_name}" (TRACK ALREADY DOWNLOADED ONCE)')
                 
@@ -351,11 +351,9 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                     Printer.hashtaged(PrintChannel.DOWNLOADS, f'DOWNLOADED: "{PurePath(filename).relative_to(Zotify.CONFIG.get_root_path())}"\n' +\
                                                               f'DOWNLOAD TOOK {time_elapsed_dl} (PLUS {time_elapsed_ffmpeg} CONVERTING)')
                     
-                    # add song ID to global .song_archive file
-                    if not check_all_time:
+                    if not in_global_songids:
                         add_to_song_archive(scraped_track_id, PurePath(filename).name, artists[0], name)
-                    # add song ID to download directory's .song_ids file
-                    if not check_local:
+                    if not in_dir_songids:
                         add_to_directory_song_archive(filedir, scraped_track_id, PurePath(filename).name, artists[0], name)
                     
                     wait_between_downloads()
