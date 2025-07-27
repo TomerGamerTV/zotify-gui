@@ -286,19 +286,18 @@ def compare_audio_tags(track_path: str | Path, reliable_tags: tuple, unreliable_
     
     # If more unreliable tags are received from API than found on file, assume the file is outdated
     if sum([bool(tag) for tag in unreliable_tags]) > sum([bool(tag) for tag in unreliable_tags_onfile]):
-        if not Zotify.CONFIG.debug():
+        if not Zotify.CONFIG.get_strict_library_verify() and not Zotify.CONFIG.debug():
             return True
     
-    if True: #TODO add a config for strict/lazy comparison
-        # stickler check for unreliable tags
-        for i in range(len(unreliable_tags)):
-            if isinstance(unreliable_tags[i], list) and isinstance(unreliable_tags_onfile[i], list):
-                # do not sort lyrics, since order matters
-                if unreliable_tags[i] != unreliable_tags_onfile[i]:
-                    mismatches.append( (unreliable_tags[i], unreliable_tags_onfile[i]) )
-            else:
-                if str(unreliable_tags[i]) != str(unreliable_tags_onfile[i]):
-                    mismatches.append( (unreliable_tags[i], unreliable_tags_onfile[i]) )
+    # stickler check for unreliable tags
+    for i in range(len(unreliable_tags)):
+        if isinstance(unreliable_tags[i], list) and isinstance(unreliable_tags_onfile[i], list):
+            # do not sort lyrics, since order matters
+            if unreliable_tags[i] != unreliable_tags_onfile[i]:
+                mismatches.append( (unreliable_tags[i], unreliable_tags_onfile[i]) )
+        else:
+            if str(unreliable_tags[i]) != str(unreliable_tags_onfile[i]):
+                mismatches.append( (unreliable_tags[i], unreliable_tags_onfile[i]) )
     
     return mismatches
 

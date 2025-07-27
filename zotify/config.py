@@ -75,6 +75,7 @@ CONFIG_VALUES = {
     
     # Metadata Options
     LANGUAGE:                   { 'default': 'en',                      'type': str,    'arg': ('--language'                             ,) },
+    STRICT_LIBRARY_VERIFY:      { 'default': 'True',                    'type': bool,   'arg': ('--strict-library-verify'                ,) },
     MD_DISC_TRACK_TOTALS:       { 'default': 'True',                    'type': bool,   'arg': ('--md-disc-track-totals'                 ,) },
     MD_SAVE_GENRES:             { 'default': 'True',                    'type': bool,   'arg': ('--md-save-genres'                       ,) },
     MD_ALLGENRES:               { 'default': 'False',                   'type': bool,   'arg': ('--md-allgenres'                         ,) },
@@ -526,3 +527,7 @@ class Config:
     @classmethod
     def get_lyrics_header(cls) -> bool:
         return cls.get(LYRICS_MD_HEADER)
+    
+    @classmethod
+    def get_strict_library_verify(cls) -> bool:
+        return cls.get(STRICT_LIBRARY_VERIFY)
