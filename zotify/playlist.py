@@ -3,7 +3,7 @@ from pathlib import PurePath, Path
 from zotify.const import USER_PLAYLISTS_URL, PLAYLISTS_URL, ITEMS, ID, TRACK, NAME, TYPE, TRACKS
 from zotify.podcast import download_episode
 from zotify.termoutput import Printer, PrintChannel
-from zotify.track import parse_track_info, download_track
+from zotify.track import parse_track_metadata, download_track
 from zotify.utils import split_sanitize_intrange, strptime_utc, fill_output_template
 from zotify.zotify import Zotify
 
@@ -63,11 +63,11 @@ def download_playlist(playlist: dict, pbar_stack: list | None = None):
                 if len(playlist_tracks) > 0:
                     output_template = Zotify.CONFIG.get_output(mode)
                     extra_keys.update({'playlist_num': "00"})
-                    first_track_path, _ = fill_output_template(output_template, parse_track_info(playlist_tracks[0]), extra_keys)
+                    first_track_path, _ = fill_output_template(output_template, parse_track_metadata(playlist_tracks[0]), extra_keys)
                     m3u_dir /= PurePath(first_track_path).parent
                 if len(playlist_tracks) > 1:
                     extra_keys.update({'playlist_num': "01"})
-                    second_track_path, _ = fill_output_template(output_template, parse_track_info(playlist_tracks[1]), extra_keys)
+                    second_track_path, _ = fill_output_template(output_template, parse_track_metadata(playlist_tracks[1]), extra_keys)
                     if PurePath(first_track_path).parent != PurePath(second_track_path).parent:
                         raise ValueError(f'No shared parent directory between `{first_track_path}` and `{second_track_path}`')
             except Exception as e:

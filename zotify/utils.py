@@ -55,13 +55,13 @@ def fix_filename(name: str | PurePath | Path ):
     return name
 
 
-def fill_output_template(output_template: str, track_info: dict, extra_keys: dict) -> tuple[str, str]:
+def fill_output_template(output_template: str, track_metadata: dict, extra_keys: dict) -> tuple[str, str]:
     
     for k in extra_keys:
         output_template = output_template.replace("{"+k+"}", fix_filename(extra_keys[k]))
     
     (scraped_track_id, name, artists, artist_ids, release_date, release_year, track_number, total_tracks,
-     album, album_artists, disc_number, compilation, duration_ms, image_url, is_playable) = track_info.values()
+     album, album_artists, disc_number, compilation, duration_ms, image_url, is_playable) = track_metadata.values()
     
     output_template = output_template.replace("{artist}", fix_filename(artists[0]))
     output_template = output_template.replace("{album_artist}", fix_filename(album_artists[0]))
@@ -158,11 +158,12 @@ def conv_genre_format(genres: list[str]) -> list[str] | str:
         return Zotify.CONFIG.get_genre_delimiter().join(genres)
 
 
-def set_audio_tags(filename, track_info: dict, total_discs: str | None, genres: list[str], lyrics: list[str] | None) -> None:
+def set_audio_tags(filename, track_metadata: dict, total_discs: str | None, genres: list[str], lyrics: list[str] | None) -> None:
     """ sets music_tag metadata """
     
     (scraped_track_id, track_name, artists, artist_ids, release_date, release_year, track_number, total_tracks,
-     album, album_artists, disc_number, compilation, duration_ms, image_url, is_playable) = track_info.values()
+     album, album_artists, disc_number, compilation, duration_ms, image_url, is_playable) = track_metadata.values()
+    ext = EXT_MAP[Zotify.CONFIG.get_download_format().lower()]
     
     tags = music_tag.load_file(filename)
     
@@ -177,8 +178,6 @@ def set_audio_tags(filename, track_info: dict, total_discs: str | None, genres: 
     tags[TRACKNUMBER] = track_number
     
     # Unreliable Tags
-    ext = EXT_MAP[Zotify.CONFIG.get_download_format().lower()]
-    
     if ext == "mp3":
         tags.mfile.tags.add(TXXX(encoding=3, desc='TRACKID', text=[scraped_track_id]))
     elif ext == "m4a":
