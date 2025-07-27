@@ -10,8 +10,8 @@ from mutagen.id3 import TXXX
 from time import sleep
 from pathlib import Path, PurePath
 
-from zotify.const import ALBUMARTIST, ARTIST, TRACKTITLE, ALBUM, YEAR, DISCNUMBER, \
-    TRACKNUMBER, ARTWORK, TOTALTRACKS, TOTALDISCS, EXT_MAP, LYRICS, COMPILATION, GENRE, EXT_MAP
+from zotify.const import ALBUMARTIST, ARTIST, TRACKTITLE, ALBUM, YEAR, DISCNUMBER, TRACKNUMBER, ARTWORK, \
+    TOTALTRACKS, TOTALDISCS, EXT_MAP, LYRICS, COMPILATION, GENRE, EXT_MAP, MP3_TRACKID, M4A_TRACKID
 from zotify.zotify import Zotify
 from zotify.termoutput import PrintChannel, Printer
 
@@ -87,7 +87,7 @@ def walk_directory_for_tracks(path: str | PurePath) -> set[Path]:
     for dirpath, dirnames, filenames in os.walk(Path(path)):
         for filename in filenames:
             if filename.endswith(tuple(set(EXT_MAP.values()))):
-                track_paths.update(Path(dirpath) / filename)
+                track_paths.update({Path(dirpath) / filename,})
     
     return track_paths
 
@@ -142,6 +142,8 @@ def split_sanitize_intrange(raw_input: str) -> list[int]:
 def conv_artist_format(artists: list[str], FORCE_NO_LIST: bool = False) -> list[str] | str:
     """ Returns converted artist format """
     if Zotify.CONFIG.get_artist_delimiter() == "":
+        # if len(artists) == 1:
+        #     return artists[0]
         return ", ".join(artists) if FORCE_NO_LIST else artists
     else:
         return Zotify.CONFIG.get_artist_delimiter().join(artists)
@@ -153,19 +155,21 @@ def conv_genre_format(genres: list[str]) -> list[str] | str:
         return genres[0]
     
     if Zotify.CONFIG.get_genre_delimiter() == "":
+        # if len(genres) == 1:
+        #     return genres[0]
         return genres
     else:
         return Zotify.CONFIG.get_genre_delimiter().join(genres)
 
 
-def set_audio_tags(filename, track_metadata: dict, total_discs: str | None, genres: list[str], lyrics: list[str] | None) -> None:
+def set_audio_tags(track_path: PurePath, track_metadata: dict, total_discs: str | None, genres: list[str], lyrics: list[str] | None) -> None:
     """ sets music_tag metadata """
     
     (scraped_track_id, track_name, artists, artist_ids, release_date, release_year, track_number, total_tracks,
      album, album_artists, disc_number, compilation, duration_ms, image_url, is_playable) = track_metadata.values()
     ext = EXT_MAP[Zotify.CONFIG.get_download_format().lower()]
     
-    tags = music_tag.load_file(filename)
+    tags = music_tag.load_file(track_path)
     
     # Reliable Tags
     tags[ARTIST] = conv_artist_format(artists)
@@ -181,10 +185,10 @@ def set_audio_tags(filename, track_metadata: dict, total_discs: str | None, genr
     if ext == "mp3":
         tags.mfile.tags.add(TXXX(encoding=3, desc='TRACKID', text=[scraped_track_id]))
     elif ext == "m4a":
-        freeform_set(tags, '----:com.apple.iTunes:trackid',  type('tag', (object,), {'values': [scraped_track_id]})())
+        freeform_set(tags, M4A_TRACKID,  type('tag', (object,), {'values': [scraped_track_id]})())
     else:
         tags.tag_map["trackid"] = TAG_MAP_ENTRY(getter="trackid", setter="trackid", type=str)
-    tags["trackid"] = scraped_track_id
+        tags["trackid"] = scraped_track_id
     
     if Zotify.CONFIG.get_disc_track_totals():
         tags[TOTALTRACKS] = total_tracks
@@ -206,61 +210,113 @@ def set_audio_tags(filename, track_metadata: dict, total_discs: str | None, genr
     tags.save()
 
 
-def get_audio_tags(filename: str | Path) -> tuple[tuple, tuple]:
-    tags = music_tag.load_file(filename)
+def get_audio_tags(track_path: Path) -> tuple[tuple, tuple]:
+    tags = music_tag.load_file(track_path)
     
-    artists = tags[ARTIST]
-    genres = tags[GENRE]
-    track_name = tags[TRACKTITLE]
-    album_name = tags[ALBUM]
-    album_artist = tags[ALBUMARTIST]
-    release_year = tags[YEAR]
-    disc_number = tags[DISCNUMBER]
-    track_number = tags[TRACKNUMBER]
+    artists = conv_artist_format(tags[ARTIST].values)
+    genres = conv_genre_format(tags[GENRE].values)
+    track_name = tags[TRACKTITLE].val
+    album_name = tags[ALBUM].val
+    album_artist = conv_artist_format(tags[ALBUMARTIST].values)
+    release_year = str(tags[YEAR].val)
+    disc_number = str(tags[DISCNUMBER].val)
+    track_number = str(tags[TRACKNUMBER].val).zfill(2)
     
-    unreliable_tags = ("trackid", TOTALTRACKS, TOTALDISCS, COMPILATION, LYRICS)
+    unreliable_tags = ["trackid", TOTALTRACKS, TOTALDISCS, COMPILATION, LYRICS]
+    if track_path.suffix.lower() == ".mp3":
+        unreliable_tags[0] = MP3_TRACKID
+    elif track_path.suffix.lower() == ".m4a":
+        unreliable_tags[0] = M4A_TRACKID
+    
+    # Printer.debug(tags.mfile.tags.__dict__)
+    tag_dict = dict(tags.mfile.tags)
+    utag_vals = []
+    for utag in unreliable_tags:
+        val = None
+        fetch_method = "legit"
+        try:
+            val = tags[utag].val
+        except:
+            fetch_method = "hacky"
+            if utag in tag_dict:
+                val = tag_dict[utag]
+        
+        if utag == LYRICS:
+            val = [line + "\n" for line in val.splitlines()]
+        elif utag == COMPILATION:
+            val = int(val)
+        elif utag == MP3_TRACKID:
+            val = val.text[0]
+        elif utag == M4A_TRACKID:
+            val = val[0].decode()
+        else:
+            val = val[0] if isinstance(val, (list, tuple)) and len(val) == 1 else val
+            val = val if val else None
+        # Printer.debug(f"{fetch_method} {utag}", val)
+        utag_vals.append(val)
     
     return (artists, genres, track_name, album_name, album_artist, release_year, disc_number, track_number), \
-           (tags[maybe_tag] if maybe_tag in tags else None for maybe_tag in unreliable_tags)
+           tuple(utag_vals)
 
 
-def compare_audio_tags(filename: str | Path, reliable_tags: tuple, unreliable_tags: tuple) -> bool:
-    """ Compares music_tag metadata to provided metadata, returns True if all match """
+def compare_audio_tags(track_path: str | Path, reliable_tags: tuple, unreliable_tags: tuple) -> list | bool:
+    """ Compares music_tag metadata to provided metadata, returns Truthy value if discrepancy is found """
     
-    reliable_tags_onfile, unreliable_tags_onfile = get_audio_tags(filename)
+    reliable_tags_onfile, unreliable_tags_onfile = get_audio_tags(track_path)
+    # Printer.debug(reliable_tags, reliable_tags_onfile)
+    # Printer.debug(unreliable_tags, unreliable_tags_onfile)
+    
+    mismatches = []
     
     # Definite tags must match
     if len(reliable_tags) != len(reliable_tags_onfile):
-        return False
+        if not Zotify.CONFIG.debug():
+            return True
     
     for i in range(len(reliable_tags)):
         if isinstance(reliable_tags[i], list) and isinstance(reliable_tags_onfile[i], list):
             if sorted(reliable_tags[i]) != sorted(reliable_tags_onfile[i]):
-                return False
+                mismatches.append( (reliable_tags[i], reliable_tags_onfile[i]) )
         else:
             if str(reliable_tags[i]) != str(reliable_tags_onfile[i]):
-                return False
+                mismatches.append( (reliable_tags[i], reliable_tags_onfile[i]) )
     
+    if mismatches:
+        return mismatches
+    
+    # If more unreliable tags are received from API than found on file, assume the file is outdated
     if sum([bool(tag) for tag in unreliable_tags]) > sum([bool(tag) for tag in unreliable_tags_onfile]):
-        return False
+        if not Zotify.CONFIG.debug():
+            return True
     
-    return True
+    if True: #TODO add a config for strict/lazy comparison
+        # stickler check for unreliable tags
+        for i in range(len(unreliable_tags)):
+            if isinstance(unreliable_tags[i], list) and isinstance(unreliable_tags_onfile[i], list):
+                # do not sort lyrics, since order matters
+                if unreliable_tags[i] != unreliable_tags_onfile[i]:
+                    mismatches.append( (unreliable_tags[i], unreliable_tags_onfile[i]) )
+            else:
+                if str(unreliable_tags[i]) != str(unreliable_tags_onfile[i]):
+                    mismatches.append( (unreliable_tags[i], unreliable_tags_onfile[i]) )
+    
+    return mismatches
 
 
-def set_music_thumbnail(filename: PurePath, image_url: str, mode: str) -> None:
+def set_music_thumbnail(track_path: PurePath, image_url: str, mode: str) -> None:
     """ Fetch an album cover image, set album cover tag, and save to file if desired """
     
     # jpeg format expected from request
     img = requests.get(image_url).content
-    tags = music_tag.load_file(filename)
+    tags = music_tag.load_file(track_path)
     tags[ARTWORK] = img
     tags.save()
     
     if not Zotify.CONFIG.get_album_art_jpg_file():
         return
     
-    jpg_filename = 'cover.jpg' if '{album}' in Zotify.CONFIG.get_output(mode) else filename.stem + '.jpg'
-    jpg_path = Path(filename).parent.joinpath(jpg_filename)
+    jpg_filename = 'cover.jpg' if '{album}' in Zotify.CONFIG.get_output(mode) else track_path.stem + '.jpg'
+    jpg_path = Path(track_path).parent.joinpath(jpg_filename)
     
     if not jpg_path.exists():
         with open(jpg_path, 'wb') as jpg_file:

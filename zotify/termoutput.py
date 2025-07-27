@@ -9,6 +9,7 @@ from threading import Thread
 from traceback import TracebackException
 from enum import Enum
 from tqdm import tqdm
+from mutagen import FileType
 
 from zotify.const import *
 
@@ -61,19 +62,32 @@ class Printer:
         return columns
     
     @staticmethod
-    def _api_shrink(obj: list | dict) -> dict:
+    def _api_shrink(obj: list | tuple | dict) -> dict:
         """ Shrinks API objects to remove data unnecessary data for debugging """
+        
+        def shrink(k: str) -> str:
+            if k in {AVAIL_MARKETS, IMAGES}:
+                return "LIST REMOVED FOR BREVITY"
+            elif k in {EXTERNAL_URLS, PREVIEW_URL}:
+                return "URL REMOVED FOR BREVITY"
+            elif k in {"metadata_block_picture", "APIC:0", "covr"}:
+                return "BYTES REMOVED FOR BREVITY"
+            return None
+        
         if isinstance(obj, list) and len(obj) > 0:
             obj = [Printer._api_shrink(item) for item in obj]
         
-        elif isinstance(obj, dict):
+        elif isinstance(obj, tuple):
+            if len(obj) == 2 and isinstance(obj[0], str):
+                if shrink(obj[0]):
+                    obj = (obj[0], shrink(obj[0]))
+        
+        elif isinstance(obj, (dict, FileType)):
             for k, v in obj.items():
-                if k in {AVAIL_MARKETS, IMAGES}:
-                    obj[k] = "LIST REMOVED FOR BREVITY"
-                elif k in {EXTERNAL_URLS, PREVIEW_URL}:
-                    obj[k] = "URL REMOVED FOR BREVITY"
-                elif isinstance(v, (list, dict)):
-                    obj[k] = Printer._api_shrink(v)
+                if shrink(k):
+                    obj[k] = shrink(k)
+                else:
+                    obj[k] = Printer._api_shrink(v) 
         
         return obj
     
@@ -132,7 +146,7 @@ class Printer:
         Printer.new_print(channel, pformat(obj, indent=2), category)
     
     @staticmethod
-    def debug(*msg: tuple[str | dict]) -> None:
+    def debug(*msg: tuple[str | object]) -> None:
         for m in msg:
             if isinstance(m, str):
                 Printer.new_print(PrintChannel.DEBUG, m, PrintCategory.DEBUG)

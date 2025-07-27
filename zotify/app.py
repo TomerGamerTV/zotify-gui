@@ -1,6 +1,6 @@
 from argparse import Namespace
 from librespot.audio.decoders import AudioQuality
-from pathlib import Path
+from pathlib import Path, PurePath
 
 from zotify.album import download_album, download_artist_albums
 from zotify.const import TRACK, NAME, ID, ARTIST, ARTISTS, ITEMS, TRACKS, EXPLICIT, ALBUM, ALBUMS, OWNER, \
@@ -305,21 +305,25 @@ def client(args: Namespace) -> None:
         return
     
     elif args.verify_library:
-        # ONLY WORKS WITH ARCHIVED TRACKS (THEORITICALLY GUARANTEES BULK_URL TO WORK)
-        library = walk_directory_for_tracks(Zotify.CONFIG.get_root_path())
-        redirector = {track_path.name: track_path for track_path in library}
+        # ONLY WORKS WITH ARCHIVED TRACKS (THEORETICALLY GUARANTEES BULK_URL TO WORK)
+        archived_tracks = get_archived_entries()
+        archived_ids = [entry.strip().split('\t')[0] for entry in archived_tracks]
+        archived_filenames = [PurePath(entry.strip().split('\t')[4]).stem for entry in archived_tracks]
         
-        track_files: list[Path] = []; track_ids: list[str] = []
-        for entry in get_archived_entries():
-            track_id, _, _, _, filename = entry.strip().split('\t')
-            if filename in redirector:
-                track_files.append(redirector[filename])
-                track_ids.append(track_id)
+        track_paths: list[Path] = []; track_ids: list[str] = []
+        library = walk_directory_for_tracks(Zotify.CONFIG.get_root_path())
+        for entry in library:
+            if entry.stem in archived_filenames:
+                track_paths.append(entry)
+                track_ids.append(archived_ids[archived_filenames.index(entry.stem)])
         
         tracks = Zotify.invoke_url_bulk(TRACKS_BULK_URL, track_ids, TRACKS)
         
-        for i, track_file in enumerate(track_files):
-            update_track_metadata(track_ids[i], track_file, tracks[i])
+        pos = 1
+        pbar = Printer.pbar(track_paths, unit='tracks', pos=pos, 
+                            disable=not Zotify.CONFIG.get_show_url_pbar()) #TODO new pbar config?
+        for i, track_path in enumerate(pbar):
+            update_track_metadata(track_ids[i], track_path, tracks[i])
     
     else:
         search(Printer.get_input('Enter search: '))

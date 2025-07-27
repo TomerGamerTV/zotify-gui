@@ -20,10 +20,8 @@ class Zotify:
     
     def __init__(self, args):
         Zotify.CONFIG.load(args)
-        login_loader = Loader(PrintChannel.MANDATORY, "Logging in...")
-        login_loader.start()
-        Zotify.login(args)
-        login_loader.stop()
+        with Loader(PrintChannel.MANDATORY, "Logging in..."):
+            Zotify.login(args)
         Zotify.datetime_launch = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     
     @classmethod

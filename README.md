@@ -62,20 +62,21 @@ If an artist's URL is given, all albums by the specified artist will be download
 | Command Line Config Flag           | Function                                                                                                                |
 |------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
 | `-h`, `--help`                     | See this message                                                                                                        |
-| `-v`, `--version`                  | Show the version of Zotify                                                                                              |
+| `--version`                        | Show the version of Zotify                                                                                              |
 | `-c`, `--config-location`          | Specify a directory containing a Zotify `config.json` file to load settings (Also accepts a filepath to a `.json` file) |
 | `-u`, `--username`                 | Account username                                                                                                        |
 | `--token`                          | Authentication token                                                                                                    |
 | `--debug`                          | Enable debug mode, prints extra information and creates a `config_DEBUG.json` file                                      |
 | `--update-config`                  | Updates the `config.json` file while keeping all current settings unchanged                                             |
 
-| Command Line Mode Flag (exclusive) | Mode                                                                                   |
-|------------------------------------|----------------------------------------------------------------------------------------|
-| `-s`, `--search`                   | Search tracks/albums/artists/playlists based on argument (interactive)                 |
-| `-p`, `--playlist`                 | Download playlist(s) saved by your account (interactive)                               |
-| `-l`, `--liked`                    | Download all Liked Songs on your account                                               |
-| `-a`, `--artists`                  | Download all songs by all followed artists                                             |
-| `-f`, `--file`                     | Download all tracks/albums/episodes/playlists URLs within the file passed as argument  |
+| Command Line Mode Flag (exclusive) | Mode                                                                                                      |
+|------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| `-s`, `--search`                   | Search tracks/albums/artists/playlists based on argument (interactive)                                    |
+| `-p`, `--playlist`                 | Download playlist(s) saved by your account (interactive)                                                  |
+| `-l`, `--liked`                    | Download all Liked Songs on your account                                                                  |
+| `-a`, `--artists`                  | Download all songs by all followed artists                                                                |
+| `-f`, `--file`                     | Download all tracks/albums/episodes/playlists URLs within the file passed as argument                     |
+| `-v`, `--verify-library`           | Check metadata for all tracks in ROOT_PATH or listed in SONG_ARCHIVE, updating the metadata if necessary  |
 
 <details><summary>
 

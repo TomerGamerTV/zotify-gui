@@ -9,6 +9,8 @@ TOTALTRACKS = 'totaltracks'
 TRACKNUMBER = 'tracknumber'
 TRACKTITLE = 'tracktitle'
 YEAR = 'year'
+MP3_TRACKID = 'TXXX:TRACKID'
+M4A_TRACKID = '----:com.apple.iTunes:trackid'
 
 # Both
 ALBUM = 'album'
