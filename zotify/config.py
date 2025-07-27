@@ -174,7 +174,6 @@ class Config:
         # Override config from commandline arguments
         for key in CONFIG_VALUES:
             if key.lower() in vars(args) and vars(args)[key.lower()] is not None:
-                # Printer.debug(f"{key} {cls.Values[key]} -> {cls.parse_arg_value(key, vars(args)[key.lower()])}")
                 cls.Values[key] = cls.parse_arg_value(key, vars(args)[key.lower()])
         
         # Confirm regex patterns

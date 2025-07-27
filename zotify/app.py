@@ -197,7 +197,6 @@ def search(search_term) -> None:
     Printer.search_select()
     choices = split_sanitize_intrange(Printer.get_input('ID(s): '))
     
-    # Printer.debug(f'###   CHOICES: {choices}   ###')
     if choices == [0]:
         return
     
@@ -253,7 +252,6 @@ def client(args: Namespace) -> None:
         if len(args.urls) > 0:
             if len(args.urls) == 1 and " " in args.urls[0]:
                 args.urls = args.urls[0].split(' ')
-            # Printer.debug(f'###   DOWNLOADING URLS: {args.urls}   ###')
             download_from_urls(args.urls)
         return
     
@@ -321,7 +319,7 @@ def client(args: Namespace) -> None:
         
         pos = 1
         pbar = Printer.pbar(track_paths, unit='tracks', pos=pos, 
-                            disable=not Zotify.CONFIG.get_show_url_pbar()) #TODO new pbar config?
+                            disable=not Zotify.CONFIG.get_show_url_pbar())
         for i, track_path in enumerate(pbar):
             update_track_metadata(track_ids[i], track_path, tracks[i])
     

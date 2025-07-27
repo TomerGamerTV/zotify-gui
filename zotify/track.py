@@ -103,9 +103,9 @@ def get_track_lyrics(track_id: str) -> list[str]:
             for line in formatted_lyrics:
                 timestamp = int(line['startTimeMs']) // 10
                 ts = fmt_duration(timestamp // 1, (60, 100), (':', '.'), "cs", True)
-                tss.append(f"{timestamp}".zfill(5) + f" {ts.split(':')[0]} {ts.split(':')[1].replace('.', ' ')}")
+                tss.append(f"{timestamp}".zfill(5) + f" {ts.split(':')[0]} {ts.split(':')[1].replace('.', ' ')}\n")
                 lyrics.append(f'[{ts}]' + line['words'] + '\n')
-            # Printer.debug("Synced Lyric Timestamps:", *tss)
+            # Printer.debug("Synced Lyric Timestamps:\n" + "".join(tss))
         return lyrics
     raise ValueError(f'Failed to fetch lyrics: {track_id}')
 
@@ -147,7 +147,7 @@ def update_track_metadata(track_id: str, track_path: Path, track_resp: dict) -> 
     track_metadata = parse_track_metadata(track_resp)
     (scraped_track_id, track_name, artists, artist_ids, release_date, release_year, track_number, total_tracks,
      album, album_artists, disc_number, compilation, duration_ms, image_url, is_playable) = track_metadata.values()
-    total_discs = None #TODO implement total discs
+    total_discs = None #TODO implement total discs or just ignore to halve API calls
     
     genres = get_track_genres(track_metadata[ARTIST_IDS], track_name)
     lyrics = handle_lyrics(track_id, track_path.parent, track_metadata)
@@ -155,12 +155,10 @@ def update_track_metadata(track_id: str, track_path: Path, track_resp: dict) -> 
     reliable_tags = (conv_artist_format(artists), conv_genre_format(genres), track_name, album, 
                      conv_artist_format(album_artists), release_year, disc_number, track_number)
     unreliable_tags = (track_id, total_tracks if Zotify.CONFIG.get_disc_track_totals() else None,
-                       total_discs if Zotify.CONFIG.get_disc_track_totals() else None, 
-                       compilation if compilation else None, lyrics)
+                       total_discs if Zotify.CONFIG.get_disc_track_totals() else None, compilation, lyrics)
     
     mismatches = compare_audio_tags(track_path, reliable_tags, unreliable_tags)
     if not mismatches:
-        # TODO fix: may cause an error for podcasts?
         Printer.hashtaged(PrintChannel.DOWNLOADS, f'VERIFIED:  METADATA FOR "{track_path.relative_to(Zotify.CONFIG.get_root_path())}"\n' +\
                                                    '(NO UPDATES REQUIRED)')
         return
@@ -217,9 +215,9 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
             if Zotify.CONFIG.get_regex_track():
                 regex_match = Zotify.CONFIG.get_regex_track().search(track_name)
                 Printer.debug("Regex Check\n" +\
-                            f"Pattern: {Zotify.CONFIG.get_regex_track().pattern}\n" +\
-                            f"Song Name: {track_name}\n" +\
-                            f"Match Object: {regex_match}")
+                             f"Pattern: {Zotify.CONFIG.get_regex_track().pattern}\n" +\
+                             f"Song Name: {track_name}\n" +\
+                             f"Match Object: {regex_match}")
                 if regex_match:
                     Printer.hashtaged(PrintChannel.SKIPPING, 'TRACK MATCHES REGEX FILTER\n' +\
                                                             f'Track_Name: {track_name} - Track_ID: {track_id}\n'+\
@@ -240,9 +238,9 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
             in_dir_songids = track_metadata[ID] in get_directory_song_ids(filedir)
             in_global_songids = track_metadata[ID] in get_archived_song_ids()
             Printer.debug("Duplicate Check\n" +\
-                        f"File Already Exists: {track_path_exists}\n" +\
-                        f"song_id in Local Archive: {in_dir_songids}\n" +\
-                        f"song_id in Global Archive: {in_global_songids}")
+                         f"File Already Exists: {track_path_exists}\n" +\
+                         f"song_id in Local Archive: {in_dir_songids}\n" +\
+                         f"song_id in Global Archive: {in_global_songids}")
             
             # same track_path, not same song_id, rename the newcomer
             if track_path_exists and not in_dir_songids and not Zotify.CONFIG.get_disable_directory_archives():

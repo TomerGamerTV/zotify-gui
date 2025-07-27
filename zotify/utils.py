@@ -263,8 +263,6 @@ def compare_audio_tags(track_path: str | Path, reliable_tags: tuple, unreliable_
     """ Compares music_tag metadata to provided metadata, returns Truthy value if discrepancy is found """
     
     reliable_tags_onfile, unreliable_tags_onfile = get_audio_tags(track_path)
-    # Printer.debug(reliable_tags, reliable_tags_onfile)
-    # Printer.debug(unreliable_tags, unreliable_tags_onfile)
     
     mismatches = []
     
@@ -342,8 +340,6 @@ def fmt_duration(duration: float | int, unit_conv: tuple[int] = (60, 60), connec
     s = duration_secs % unit_conv[1]
     m = duration_mins % unit_conv[0]
     h = duration_mins // unit_conv[0]
-    
-    # Printer.debug(" ".join([f"{duration_secs}".zfill(5), f'{h}'.zfill(2), f'{m}'.zfill(2), f'{s}'.zfill(2)]))
     
     if not any((h, m, s)):
         return "0" + smallest_unit
