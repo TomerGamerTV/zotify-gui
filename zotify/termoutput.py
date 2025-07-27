@@ -1,5 +1,4 @@
 from __future__ import annotations
-import json
 import platform
 from os import get_terminal_size, system
 from itertools import cycle
@@ -54,7 +53,7 @@ ACTIVE_PBARS: list[tqdm] = []
 
 class Printer:
     @staticmethod
-    def term_cols() -> int:
+    def _term_cols() -> int:
         try:
             columns, _ = get_terminal_size()
         except OSError:
@@ -62,14 +61,31 @@ class Printer:
         return columns
     
     @staticmethod
-    def print_prefixes(msg: str, category: PrintCategory, channel: PrintChannel) -> str:
+    def _api_shrink(obj: list | dict) -> dict:
+        """ Shrinks API objects to remove data unnecessary data for debugging """
+        if isinstance(obj, list) and len(obj) > 0:
+            obj = [Printer._api_shrink(item) for item in obj]
+        
+        elif isinstance(obj, dict):
+            for k, v in obj.items():
+                if k in {AVAIL_MARKETS, IMAGES}:
+                    obj[k] = "LIST REMOVED FOR BREVITY"
+                elif k in {EXTERNAL_URLS, PREVIEW_URL}:
+                    obj[k] = "URL REMOVED FOR BREVITY"
+                elif isinstance(v, (list, dict)):
+                    obj[k] = Printer._api_shrink(v)
+        
+        return obj
+    
+    @staticmethod
+    def _print_prefixes(msg: str, category: PrintCategory, channel: PrintChannel) -> str:
         if category is PrintCategory.HASHTAG:
             if channel in {PrintChannel.WARNING, PrintChannel.ERROR, PrintChannel.API_ERROR,
                            PrintChannel.SKIPPING,}:
                 msg = channel.name + ":  " + msg
             msg =  msg.replace("\n", "   ###\n###   ") + "   ###"
         elif category is PrintCategory.JSON:
-            msg = "#" * (Printer.term_cols()-1) + "\n" + msg + "\n" + "#" * Printer.term_cols()
+            msg = "#" * (Printer._term_cols()-1) + "\n" + msg + "\n" + "#" * Printer._term_cols()
         
         global LAST_PRINT
         if LAST_PRINT is PrintCategory.DEBUG and category is PrintCategory.DEBUG:
@@ -91,10 +107,10 @@ class Printer:
             global ACTIVE_LOADER
             if not loader and ACTIVE_LOADER:
                 ACTIVE_LOADER.pause()
-            msg = Printer.print_prefixes(msg, category, channel)
+            msg = Printer._print_prefixes(msg, category, channel)
             for line in str(msg).splitlines():
                 if end == "\n": 
-                    tqdm.write(line.ljust(Printer.term_cols()))
+                    tqdm.write(line.ljust(Printer._term_cols()))
                 else:
                     tqdm.write(line, end=end)
                 LAST_PRINT = category
@@ -111,23 +127,21 @@ class Printer:
     
     # Print Wrappers
     @staticmethod
-    def debug(msg: str | dict) -> None:
-        if not isinstance(msg, str):
-            msg = pformat(msg, indent=2)
-        Printer.new_print(PrintChannel.DEBUG, msg, PrintCategory.DEBUG)
+    def json_dump(obj: dict, channel: PrintChannel = PrintChannel.ERROR, category: PrintCategory = PrintCategory.JSON) -> None:
+        obj = Printer._api_shrink(obj)
+        Printer.new_print(channel, pformat(obj, indent=2), category)
+    
+    @staticmethod
+    def debug(*msg: tuple[str | dict]) -> None:
+        for m in msg:
+            if isinstance(m, str):
+                Printer.new_print(PrintChannel.DEBUG, m, PrintCategory.DEBUG)
+            else:
+                Printer.json_dump(m, PrintChannel.DEBUG, PrintCategory.DEBUG)
     
     @staticmethod
     def hashtaged(channel: PrintChannel, msg: str):
         Printer.new_print(channel, msg, PrintCategory.HASHTAG)
-    
-    @staticmethod
-    def json_dump(obj: dict, channel: PrintChannel = PrintChannel.ERROR) -> None:
-        if AVAIL_MARKETS in obj:
-            obj[AVAIL_MARKETS] = "REMOVED FOR BREVITY"
-        if ITEMS in obj and AVAIL_MARKETS in obj[ITEMS][0]:
-            for item in obj[ITEMS]:
-                item[AVAIL_MARKETS] = "REMOVED FOR BREVITY"
-        Printer.new_print(channel, json.dumps(obj, indent=2), PrintCategory.JSON)
     
     @staticmethod
     def traceback(e: Exception) -> None:

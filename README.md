@@ -101,7 +101,7 @@ Set arguments in the commandline like this: `-ie False` or `--codec mp3`. Wrap c
 | `OUTPUT_SINGLE`              | `-os`, `--output-single`            | Output file pattern for single tracks             | See [Output Format Examples](#example-output-values) |
 | `OUTPUT_ALBUM`               | `-oa`, `--output-album`             | Output file pattern for albums                    | See [Output Format Examples](#example-output-values) |
 | `ROOT_PODCAST_PATH`          | `-rpp`, `--root-podcast-path`       | Directory where podcasts are saved                                           | `~/Music/Zotify Podcasts` |
-| `SPLIT_ALBUM_DISCS`          | `--split-album-discs`               | Saves each disk in its own folder                                            | False                     |
+| `SPLIT_ALBUM_DISCS`          | `--split-album-discs`               | Saves each disc of an album into its own subfolder                           | False                     |
 | `MAX_FILENAME_LENGTH`        | `--max-filename-length`             | Maximum character length of filenames, truncated to fit, 0 meaning no limit  | 0                         |
 
 | Download Options             | Command Line Config Flag            | Description                                                                              | Default Value |
@@ -228,6 +228,7 @@ The value is relative to the `ROOT_PATH` directory and may contain the following
 | `{album_id}`      | (only when downloading albums) ID of the album               |
 | `{album_num}`     | (only when downloading albums) Incrementing track number     |
 | `{playlist}`      | (only when downloading playlists) Name of the playlist       |
+| `{playlist_id}`   | (only when downloading playlists) ID of the playlist         |
 | `{playlist_num}`  | (only when downloading playlists) Incrementing track number  |
 
 ### Example Output Values

@@ -1,60 +1,63 @@
 import time
 import uuid
 import ffmpy
-from typing import Any
 from pathlib import Path, PurePath
 from librespot.metadata import TrackId
 
 from zotify import __version__
 from zotify.const import TRACKS, ALBUM, GENRES, NAME, DISC_NUMBER, TRACK_NUMBER, TOTAL_TRACKS, \
-    IS_PLAYABLE, ARTISTS, IMAGES, URL, RELEASE_DATE, ID, TRACKS_URL, TRACK_STATS_URL, \
-    CODEC_MAP, EXT_MAP, DURATION_MS, ARTISTS, WIDTH, COMPILATION, ALBUM_TYPE, ARTIST_BULK_URL
-from zotify.config import EXPORT_M3U8
+    IS_PLAYABLE, ARTISTS, ARTIST_IDS, IMAGES, URL, RELEASE_DATE, ID, TRACKS_URL, TRACK_STATS_URL, \
+    CODEC_MAP, DURATION_MS, WIDTH, COMPILATION, ALBUM_TYPE, ARTIST_BULK_URL, YEAR, \
+    ALBUM_ARTISTS, IMAGE_URL, EXPORT_M3U8
 from zotify.termoutput import Printer, PrintChannel, Loader
-from zotify.utils import fix_filename, set_audio_tags, set_music_thumbnail, create_download_directory, \
+from zotify.utils import fill_output_template, set_audio_tags, set_music_thumbnail, create_download_directory, \
     add_to_m3u8, fetch_m3u8_songs, get_directory_song_ids, add_to_directory_song_archive, \
     get_archived_song_ids, add_to_song_archive, fmt_duration, wait_between_downloads, conv_artist_format
 from zotify.zotify import Zotify
 
 
-def get_track_info(track_id) -> tuple[list[str], list[Any], str, str, str, Any, Any, Any, Any, Any, Any, Any, Any, int]:
+def parse_track_info(resp: dict) -> dict[str, list[str] | str | int | bool]:
+    track_info: dict[str, list[str] | str | int | bool] = {}
+    
+    # track_info unpack to individual variables
+    # (scraped_track_id, name, artists, artist_ids, release_date, release_year, track_number, total_tracks,
+    # album, album_artists, disc_number, compilation, duration_ms, image_url, is_playable) = track_info.values()
+    
+    track_info[ID] = resp[ID] # str
+    track_info[NAME] = resp[NAME] # str
+    track_info[ARTISTS] = [artist[NAME] for artist in resp[ARTISTS]] # list[str]
+    track_info[ARTIST_IDS] = [artist[ID] for artist in resp[ARTISTS]] # list[str]
+    track_info[RELEASE_DATE] = resp[ALBUM][RELEASE_DATE] # date as str
+    track_info[YEAR] = track_info[RELEASE_DATE].split('-')[0] # int as str
+    track_info[TRACK_NUMBER] = str(resp[TRACK_NUMBER]).zfill(2) # int as str
+    track_info[TOTAL_TRACKS] = str(resp[ALBUM][TOTAL_TRACKS]).zfill(2) # int as str
+    track_info[ALBUM] = resp[ALBUM][NAME] # str
+    track_info[ALBUM_ARTISTS] = [artist[NAME] for artist in resp[ALBUM][ARTISTS]] # list[str]
+    track_info[DISC_NUMBER] = str(resp[DISC_NUMBER]) # int as str
+    track_info[COMPILATION] = 1 if COMPILATION in resp[ALBUM][ALBUM_TYPE] else 0 # int
+    track_info[DURATION_MS] = resp[DURATION_MS] # int
+    
+    largest_image = max(resp[ALBUM][IMAGES], key=lambda img: img[WIDTH], default=None)
+    track_info[IMAGE_URL] = largest_image[URL] # str
+    
+    # not provided by playlist API, but available in track API
+    track_info[IS_PLAYABLE] = resp[IS_PLAYABLE] if IS_PLAYABLE in resp else True # bool, assume true
+    
+    return track_info
+
+
+def get_track_info(track_id) -> dict[str, list[str] | str | int | bool]:
     """ Retrieves metadata for downloaded songs """
     with Loader(PrintChannel.PROGRESS_INFO, "Fetching track information..."):
         (raw, info) = Zotify.invoke_url(f'{TRACKS_URL}?ids={track_id}&market=from_token')
-    
-    if not TRACKS in info:
-        raise ValueError(f'Invalid response from TRACKS_URL:\n{raw}')
-    
-    try:
-        artists = []
-        artist_ids = []
-        for data in info[TRACKS][0][ARTISTS]:
-            artists.append(data[NAME])
-            artist_ids.append(data[ID])
         
-        album_name = info[TRACKS][0][ALBUM][NAME]
-        album_artist = info[TRACKS][0][ALBUM][ARTISTS][0][NAME]
-        album_compilation = 1 if COMPILATION in info[TRACKS][0][ALBUM][ALBUM_TYPE] else 0
-        name = info[TRACKS][0][NAME]
-        release_year = info[TRACKS][0][ALBUM][RELEASE_DATE].split('-')[0]
-        disc_number = info[TRACKS][0][DISC_NUMBER]
-        track_number = info[TRACKS][0][TRACK_NUMBER]
-        total_tracks = info[TRACKS][0][ALBUM][TOTAL_TRACKS]
-        scraped_track_id = info[TRACKS][0][ID]
-        is_playable = info[TRACKS][0][IS_PLAYABLE]
-        duration_ms = info[TRACKS][0][DURATION_MS]
+        if not TRACKS in info:
+            raise ValueError(f'Invalid response from TRACKS_URL:\n{raw}')
         
-        image = info[TRACKS][0][ALBUM][IMAGES][0]
-        for i in info[TRACKS][0][ALBUM][IMAGES]:
-            if i[WIDTH] > image[WIDTH]:
-                image = i
-        image_url = image[URL]
-        
-        return (artists, artist_ids, album_name, album_artist, name, 
-                image_url, release_year, disc_number, track_number, total_tracks, 
-                album_compilation, scraped_track_id, is_playable, duration_ms)
-    except Exception as e:
-        raise ValueError(f'Failed to parse TRACKS_URL response: {str(e)}\n{raw}')
+        try:
+            return parse_track_info(info[TRACKS][0])
+        except Exception as e:
+            raise ValueError(f'Failed to parse TRACKS_URL response: {str(e)}\n{raw}')
 
 
 def get_track_genres(artist_ids: list[str], track_name: str) -> list[str]:
@@ -105,21 +108,7 @@ def get_track_lyrics(track_id: str) -> list[str]:
     raise ValueError(f'Failed to fetch lyrics: {track_id}')
 
 
-def get_track_duration(track_id: str) -> float:
-    """ Retrieves duration of song in seconds according to track API stats """
-    
-    (raw, resp) = Zotify.invoke_url(f'{TRACK_STATS_URL}{track_id}')
-    
-    # get duration in miliseconds
-    ms_duration = resp['duration_ms']
-    # convert to seconds
-    duration = float(ms_duration)/1000
-    
-    return duration
-
-
-def handle_lyrics(track_id: str, track_name: str, filedir: PurePath,
-                  name: str, artists: list[str], album: str, duration_ms: int) -> list[str] | None:
+def handle_lyrics(track_id: str, track_label: str, filedir: PurePath, track_info: dict) -> list[str] | None:
     lyrics = None
     if not Zotify.CONFIG.get_download_lyrics() and not Zotify.CONFIG.get_always_check_lyrics():
         return lyrics
@@ -133,20 +122,20 @@ def handle_lyrics(track_id: str, track_name: str, filedir: PurePath,
         
         lyrics = get_track_lyrics(track_id)
         
-        lrc_header = [f"[ti: {name}]\n",
-                      f"[ar: {conv_artist_format(artists, FORCE_NO_LIST=True)}]\n",
-                      f"[al: {album}]\n",
-                      f"[length: {duration_ms // 60000}:{(duration_ms % 60000) // 1000}]\n",
+        lrc_header = [f"[ti: {track_info[NAME]}]\n",
+                      f"[ar: {conv_artist_format(track_info[ARTISTS], FORCE_NO_LIST=True)}]\n",
+                      f"[al: {track_info[ALBUM]}]\n",
+                      f"[length: {track_info[DURATION_MS] // 60000}:{(track_info[DURATION_MS] % 60000) // 1000}]\n",
                       f"[by: Zotify v{__version__}]\n",
                       "\n"]
         
-        with open(lyricdir / f"{track_name}.lrc", 'w', encoding='utf-8') as file:
+        with open(lyricdir / f"{track_label}.lrc", 'w', encoding='utf-8') as file:
             if Zotify.CONFIG.get_lyrics_header():
                 file.writelines(lrc_header)
             file.writelines(lyrics)
         
     except ValueError:
-        Printer.hashtaged(PrintChannel.SKIPPING, f'LYRICS FOR "{track_name}" (LYRICS NOT AVAILABLE)')
+        Printer.hashtaged(PrintChannel.SKIPPING, f'LYRICS FOR "{track_label}" (LYRICS NOT AVAILABLE)')
     return lyrics
 
 
@@ -171,7 +160,7 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
             
             if album_id and total_tracks and int(total_tracks) > 1:
                 from zotify.album import download_album
-                # uses album OUTPUT template for filename formatting, but handle m3u8 as if only this track was downloaded
+                # uses album OUTPUT template for track_path formatting, but handle m3u8 as if only this track was downloaded
                 download_album(album_id, pbar_stack, M3U8_bypass=(mode, track_id))
                 return
     
@@ -179,84 +168,67 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
         extra_keys = {}
     
     try:
-        output_template = Zotify.CONFIG.get_output(mode)
-        
-        (artists, artist_ids, album_name, album_artist, name, image_url, release_year, disc_number,
-         track_number, total_tracks, compilation, scraped_track_id, is_playable, duration_ms) = get_track_info(track_id)
+        track_info = get_track_info(track_id)
+        track_name = track_info[NAME]
         total_discs = None
         if "total_discs" in extra_keys:
             total_discs = extra_keys["total_discs"]
         
         if Zotify.CONFIG.get_regex_track():
-            regex_match = Zotify.CONFIG.get_regex_track().search(name)
+            regex_match = Zotify.CONFIG.get_regex_track().search(track_name)
             Printer.debug("Regex Check\n" +\
                          f"Pattern: {Zotify.CONFIG.get_regex_track().pattern}\n" +\
-                         f"Song Name: {name}\n" +\
+                         f"Song Name: {track_name}\n" +\
                          f"Match Object: {regex_match}")
             if regex_match:
                 Printer.hashtaged(PrintChannel.SKIPPING, 'TRACK MATCHES REGEX FILTER\n' +\
-                                                        f'Track_Name: {name} - Track_ID: {track_id}\n'+\
+                                                        f'Track_Name: {track_name} - Track_ID: {track_id}\n'+\
                                                        (f'Regex Groups: {regex_match.groupdict()}\n' if regex_match.groups() else ""))
                 return
         
         prepare_download_loader = Loader(PrintChannel.PROGRESS_INFO, "Preparing download...")
         prepare_download_loader.start()
         
-        track_name = fix_filename(artists[0]) + ' - ' + fix_filename(name)
+        output_template = Zotify.CONFIG.get_output(mode)
+        root_to_track, track_label = fill_output_template(output_template, track_info, extra_keys)
         
-        for k in extra_keys:
-            output_template = output_template.replace("{"+k+"}", fix_filename(extra_keys[k]))
+        track_path = PurePath(Zotify.CONFIG.get_root_path()).joinpath(root_to_track)
+        filedir = PurePath(track_path).parent
         
-        ext = EXT_MAP.get(Zotify.CONFIG.get_download_format().lower())
-        
-        output_template = output_template.replace("{artist}", fix_filename(artists[0]))
-        output_template = output_template.replace("{album_artist}", fix_filename(album_artist))
-        output_template = output_template.replace("{album}", fix_filename(album_name))
-        output_template = output_template.replace("{song_name}", fix_filename(name))
-        output_template = output_template.replace("{release_year}", fix_filename(release_year))
-        output_template = output_template.replace("{disc_number}", fix_filename(disc_number))
-        output_template = output_template.replace("{track_number}", '{:02d}'.format(int(fix_filename(track_number))))
-        output_template = output_template.replace("{total_tracks}", fix_filename(total_tracks))
-        output_template = output_template.replace("{id}", fix_filename(scraped_track_id))
-        output_template = output_template.replace("{track_id}", fix_filename(track_id))
-        output_template += f".{ext}"
-        
-        filename = PurePath(Zotify.CONFIG.get_root_path()).joinpath(output_template)
-        filedir = PurePath(filename).parent
-        
-        filename_temp = filename
+        track_path_temp = track_path
         if Zotify.CONFIG.get_temp_download_dir() != '':
-            filename_temp = PurePath(Zotify.CONFIG.get_temp_download_dir()).joinpath(f'zotify_{str(uuid.uuid4())}_{track_id}.{ext}')
+            track_path_temp = PurePath(Zotify.CONFIG.get_temp_download_dir()).joinpath(f'zotify_{str(uuid.uuid4())}_{track_id}.{track_path.suffix}')
         
-        filename_exists = Path(filename).is_file() and Path(filename).stat().st_size
-        in_dir_songids = scraped_track_id in get_directory_song_ids(filedir)
-        in_global_songids = scraped_track_id in get_archived_song_ids()
+        track_path_exists = Path(track_path).is_file() and Path(track_path).stat().st_size
+        in_dir_songids = track_info[ID] in get_directory_song_ids(filedir)
+        in_global_songids = track_info[ID] in get_archived_song_ids()
         Printer.debug("Duplicate Check\n" +\
-                     f"File Already Exists: {filename_exists}\n" +\
+                     f"File Already Exists: {track_path_exists}\n" +\
                      f"song_id in Local Archive: {in_dir_songids}\n" +\
                      f"song_id in Global Archive: {in_global_songids}")
         
-        # same filename, not same song_id, rename the newcomer
-        if filename_exists and not in_dir_songids and not Zotify.CONFIG.get_disable_directory_archives():
-            c = len([file for file in Path(filedir).iterdir() if file.match(filename.stem + "*")])
-            filename = PurePath(filedir).joinpath(f'{filename.stem}_{c}{filename.suffix}')
-            filename_exists = False # new filename guaranteed to be unique
+        # same track_path, not same song_id, rename the newcomer
+        if track_path_exists and not in_dir_songids and not Zotify.CONFIG.get_disable_directory_archives():
+            c = len([file for file in Path(filedir).iterdir() if file.match(track_path.stem + "*")])
+            track_path = PurePath(filedir).joinpath(f'{track_path.stem}_{c}{track_path.suffix}')
+            track_path_exists = False # new track_path guaranteed to be unique
         
         liked_m3u8 = child_request_mode == "liked" and Zotify.CONFIG.get_liked_songs_archive_m3u8()
         if Zotify.CONFIG.get_export_m3u8() and track_id == child_request_id:
+            m3u8_path: PurePath | None = extra_keys['m3u8_path'] if 'm3u8_path' in extra_keys else None
             if liked_m3u8:
-                m3u_path = filedir / "Liked Songs.m3u8"
-                songs_m3u = fetch_m3u8_songs(m3u_path)
-            track_label = add_to_m3u8(liked_m3u8, get_track_duration(track_id), track_name, filename)
+                m3u8_path = filedir / "Liked Songs.m3u8"
+                songs_m3u = fetch_m3u8_songs(m3u8_path)
+            track_m3u8_label = add_to_m3u8(track_info[DURATION_MS], track_label, track_path, m3u8_path)
             if liked_m3u8:
-                if songs_m3u is not None and track_label in songs_m3u[0]:
+                if songs_m3u is not None and track_m3u8_label in songs_m3u[0]:
                     Zotify.CONFIG.Values[EXPORT_M3U8] = False
-                    Path(filedir / (Zotify.datetime_launch + "_zotify.m3u8")).replace(m3u_path)
-                    with open(m3u_path, 'a', encoding='utf-8') as file:
+                    Path(filedir / (Zotify.datetime_launch + "_zotify.m3u8")).replace(m3u8_path)
+                    with open(m3u8_path, 'a', encoding='utf-8') as file:
                         file.writelines(songs_m3u[3:])
         
         if Zotify.CONFIG.get_always_check_lyrics():
-            lyrics = handle_lyrics(track_id, track_name, filedir, name, artists, album_name, duration_ms)
+            lyrics = handle_lyrics(track_id, track_label, filedir, track_info)
     
     except Exception as e:
         if "prepare_download_loader" in locals():
@@ -268,25 +240,25 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
     
     else:
         try:
-            if not is_playable:
+            if not track_info[IS_PLAYABLE]:
                 prepare_download_loader.stop()
-                Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_name}" (TRACK IS UNAVAILABLE)')
+                Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_label}" (TRACK IS UNAVAILABLE)')
             else:
-                if filename_exists and Zotify.CONFIG.get_skip_existing() and Zotify.CONFIG.get_disable_directory_archives():
+                if track_path_exists and Zotify.CONFIG.get_skip_existing() and Zotify.CONFIG.get_disable_directory_archives():
                     prepare_download_loader.stop()
-                    Printer.hashtaged(PrintChannel.SKIPPING, f'"{PurePath(filename).relative_to(Zotify.CONFIG.get_root_path())}" (FILE ALREADY EXISTS)')
+                    Printer.hashtaged(PrintChannel.SKIPPING, f'"{PurePath(track_path).relative_to(Zotify.CONFIG.get_root_path())}" (FILE ALREADY EXISTS)')
                 
                 elif in_dir_songids and Zotify.CONFIG.get_skip_existing() and not Zotify.CONFIG.get_disable_directory_archives():
                     prepare_download_loader.stop()
-                    Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_name}" (TRACK ALREADY EXISTS)')
+                    Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_label}" (TRACK ALREADY EXISTS)')
                 
                 elif in_global_songids and Zotify.CONFIG.get_skip_previously_downloaded():
                     prepare_download_loader.stop()
-                    Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_name}" (TRACK ALREADY DOWNLOADED ONCE)')
+                    Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_label}" (TRACK ALREADY DOWNLOADED ONCE)')
                 
                 else:
-                    if track_id != scraped_track_id:
-                        track_id = scraped_track_id
+                    if track_id != track_info[ID]:
+                        track_id = track_info[ID]
                     track = TrackId.from_base62(track_id)
                     stream = Zotify.get_content_stream(track, Zotify.DOWNLOAD_QUALITY)
                     if stream is None:
@@ -302,8 +274,8 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                     time_start = time.time()
                     downloaded = 0
                     pos, pbar_stack = Printer.pbar_position_handler(1, pbar_stack)
-                    with open(filename_temp, 'wb') as file, Printer.pbar(
-                            desc=track_name,
+                    with open(track_path_temp, 'wb') as file, Printer.pbar(
+                            desc=track_label,
                             total=total_size,
                             unit='B',
                             unit_scale=True,
@@ -320,59 +292,58 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                             b += 1 if data == b'' else 0
                             if Zotify.CONFIG.get_download_real_time():
                                 delta_real = time.time() - time_start
-                                delta_want = (downloaded / total_size) * (duration_ms/1000)
+                                delta_want = (downloaded / total_size) * (track_info[DURATION_MS]/1000)
                                 if delta_want > delta_real:
                                     time.sleep(delta_want - delta_real)
                     
                     time_dl_end = time.time()
                     time_elapsed_dl = fmt_duration(time_dl_end - time_start)
                     
-                    genres = get_track_genres(artist_ids, name)
+                    genres = get_track_genres(track_info[ARTIST_IDS], track_name)
                     
-                    lyrics = handle_lyrics(track_id, track_name, filedir, name, artists, album_name, duration_ms)
+                    lyrics = handle_lyrics(track_id, track_label, filedir, track_info)
                     
                     # no metadata is written to track prior to conversion
-                    time_elapsed_ffmpeg = convert_audio_format(filename_temp)
+                    time_elapsed_ffmpeg = convert_audio_format(track_path_temp)
                     
                     try:
-                        set_audio_tags(filename_temp, artists, genres, name, album_name, album_artist, release_year, 
-                                       disc_number, track_number, total_tracks, total_discs, compilation, lyrics)
-                        set_music_thumbnail(filename_temp, image_url, mode)
+                        set_audio_tags(track_path_temp, track_info, total_discs, genres, lyrics)
+                        set_music_thumbnail(track_path_temp, track_info[IMAGE_URL], mode)
                     except Exception as e:
                         Printer.hashtaged(PrintChannel.ERROR, 'FAILED TO WRITE METADATA\n' +\
                                                               'Ensure FFMPEG is installed and added to your PATH')
                         Printer.traceback(e)
                     
-                    if filename_temp != filename:
-                        if Path(filename).exists():
-                            Path(filename).unlink()
-                        Path(filename_temp).rename(filename)
+                    if track_path_temp != track_path:
+                        if Path(track_path).exists():
+                            Path(track_path).unlink()
+                        Path(track_path_temp).rename(track_path)
                     
-                    Printer.hashtaged(PrintChannel.DOWNLOADS, f'DOWNLOADED: "{PurePath(filename).relative_to(Zotify.CONFIG.get_root_path())}"\n' +\
+                    Printer.hashtaged(PrintChannel.DOWNLOADS, f'DOWNLOADED: "{PurePath(track_path).relative_to(Zotify.CONFIG.get_root_path())}"\n' +\
                                                               f'DOWNLOAD TOOK {time_elapsed_dl} (PLUS {time_elapsed_ffmpeg} CONVERTING)')
                     
                     if not in_global_songids:
-                        add_to_song_archive(scraped_track_id, PurePath(filename).name, artists[0], name)
+                        add_to_song_archive(track_info[ID], PurePath(track_path).name, track_info[ARTISTS][0], track_name)
                     if not in_dir_songids:
-                        add_to_directory_song_archive(filedir, scraped_track_id, PurePath(filename).name, artists[0], name)
+                        add_to_directory_song_archive(filedir, track_info[ID], PurePath(track_path).name, track_info[ARTISTS][0], track_name)
                     
                     wait_between_downloads()
             
         except Exception as e:
             Printer.hashtaged(PrintChannel.ERROR, 'SKIPPING SONG - GENERAL DOWNLOAD ERROR\n' +\
-                                                 f'Track_Name: {track_name} - Track_ID: {track_id}')
+                                                 f'Track_Label: {track_label} - Track_ID: {track_id}')
             Printer.json_dump(extra_keys)
             Printer.traceback(e)
-            if Path(filename_temp).exists():
-                Path(filename_temp).unlink()
+            if Path(track_path_temp).exists():
+                Path(track_path_temp).unlink()
         
         prepare_download_loader.stop()
 
 
-def convert_audio_format(filename) -> None:
+def convert_audio_format(track_path) -> None:
     """ Converts raw audio into playable file """
-    temp_filename = f'{PurePath(filename).parent}.tmp'
-    Path(filename).replace(temp_filename)
+    temp_track_path = f'{PurePath(track_path).parent}.tmp'
+    Path(track_path).replace(temp_track_path)
     
     download_format = Zotify.CONFIG.get_download_format().lower()
     file_codec = CODEC_MAP.get(download_format, 'copy')
@@ -396,14 +367,14 @@ def convert_audio_format(filename) -> None:
     try:
         ff_m = ffmpy.FFmpeg(
             global_options=['-y', '-hide_banner', f'-loglevel {Zotify.CONFIG.get_ffmpeg_log_level()}'],
-            inputs={temp_filename: None},
-            outputs={filename: output_params}
+            inputs={temp_track_path: None},
+            outputs={track_path: output_params}
         )
         with Loader(PrintChannel.PROGRESS_INFO, "Converting file..."):
             ff_m.run()
         
-        if Path(temp_filename).exists():
-            Path(temp_filename).unlink()
+        if Path(temp_track_path).exists():
+            Path(temp_track_path).unlink()
         
     except ffmpy.FFExecutableNotFoundError:
         Printer.hashtaged(PrintChannel.WARNING, 'FFMPEG NOT FOUND\n' +\

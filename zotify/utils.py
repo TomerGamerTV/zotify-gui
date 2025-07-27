@@ -52,6 +52,31 @@ def fix_filename(name: str | PurePath | Path ):
     return name
 
 
+def fill_output_template(output_template: str, track_info: dict, extra_keys: dict) -> tuple[str, str]:
+    
+    for k in extra_keys:
+        output_template = output_template.replace("{"+k+"}", fix_filename(extra_keys[k]))
+    
+    (scraped_track_id, name, artists, artist_ids, release_date, release_year, track_number, total_tracks,
+     album, album_artists, disc_number, compilation, duration_ms, image_url, is_playable) = track_info.values()
+    
+    output_template = output_template.replace("{artist}", fix_filename(artists[0]))
+    output_template = output_template.replace("{album_artist}", fix_filename(album_artists[0]))
+    output_template = output_template.replace("{album}", fix_filename(album))
+    output_template = output_template.replace("{song_name}", fix_filename(name))
+    output_template = output_template.replace("{release_year}", fix_filename(release_year))
+    output_template = output_template.replace("{disc_number}", fix_filename(disc_number))
+    output_template = output_template.replace("{track_number}", fix_filename(track_number))
+    output_template = output_template.replace("{total_tracks}", fix_filename(total_tracks))
+    output_template = output_template.replace("{id}", fix_filename(scraped_track_id))
+    output_template = output_template.replace("{track_id}", fix_filename(scraped_track_id))
+    
+    ext = EXT_MAP.get(Zotify.CONFIG.get_download_format().lower())
+    output_template += f".{ext}"
+    
+    return output_template, fix_filename(artists[0]) + ' - ' + fix_filename(name)
+
+
 # Input Processing Utils
 def regex_input_for_urls(search_input: str, non_global: bool = False) -> tuple[
     str | None, str | None, str | None, str | None, str | None, str | None]:
@@ -118,14 +143,18 @@ def conv_genre_format(genres: list[str]) -> list[str] | str:
         return Zotify.CONFIG.get_genre_delimiter().join(genres)
 
 
-def set_audio_tags(filename, artists: list[str], genres: list[str], name, album_name, album_artist, release_year, disc_number, track_number, total_tracks, total_discs, compilation: int, lyrics: list[str] | None) -> None:
+def set_audio_tags(filename, track_info: dict, total_discs: str | None, genres: list[str], lyrics: list[str] | None) -> None:
     """ sets music_tag metadata """
+    
+    (scraped_track_id, name, artists, artist_ids, release_date, release_year, track_number, total_tracks,
+     album, album_artists, disc_number, compilation, duration_ms, image_url, is_playable) = track_info.values()
+    
     tags = music_tag.load_file(filename)
-    tags[ALBUMARTIST] = album_artist
+    tags[ALBUMARTIST] = conv_artist_format(album_artists)
     tags[ARTIST] = conv_artist_format(artists)
     tags[GENRE] = conv_genre_format(genres)
     tags[TRACKTITLE] = name
-    tags[ALBUM] = album_name
+    tags[ALBUM] = album
     tags[YEAR] = release_year
     tags[DISCNUMBER] = disc_number
     tags[TRACKNUMBER] = track_number
@@ -279,44 +308,43 @@ def add_to_directory_song_archive(download_path: str, track_id: str, filename: s
 
 
 # Playlist File Utils
-def add_to_m3u8(liked_m3u8: bool, track_duration: float, track_name: str, track_path: PurePath) -> str | None:
+def add_to_m3u8(duration_ms: int, track_name: str, track_path: PurePath, m3u8_path: PurePath | None) -> str | None:
     """ Adds song to a .m3u8 playlist, returning the song label in m3u8 format"""
     
-    m3u_dir = Zotify.CONFIG.get_m3u8_location()
-    if m3u_dir is None:
-        m3u_dir = track_path.parent
-    
-    if liked_m3u8:
-        m3u_path = track_path.parent / (Zotify.datetime_launch + "_zotify.m3u8")
+    if m3u8_path is None:
+        m3u_dir = Zotify.CONFIG.get_m3u8_location()
+        if m3u_dir is None:
+            m3u_dir = track_path.parent
+        m3u8_path = m3u_dir / (Zotify.datetime_launch + "_zotify.m3u8")
+    elif m3u8_path.name == "Liked Songs.m3u8": # may get confused if playlist is named "Liked Songs"
+        m3u8_path = track_path.parent / (Zotify.datetime_launch + "_zotify.m3u8")
         if not Path(track_path.parent / "Liked Songs.m3u8").exists() or "justCreatedLikedSongsM3U8" in globals():
-            m3u_path = track_path.parent / "Liked Songs.m3u8"
+            m3u8_path = track_path.parent / "Liked Songs.m3u8"
             global justCreatedLikedSongsM3U8; justCreatedLikedSongsM3U8 = True # hacky, terrible, truly awful: too bad!
-    else:
-        m3u_path = m3u_dir / (Zotify.datetime_launch + "_zotify.m3u8")
     
-    if not Path(m3u_path).exists():
-        Path(m3u_path.parent).mkdir(parents=True, exist_ok=True)
-        with open(m3u_path, 'x', encoding='utf-8') as file:
+    if not Path(m3u8_path).exists():
+        Path(m3u8_path.parent).mkdir(parents=True, exist_ok=True)
+        with open(m3u8_path, 'x', encoding='utf-8') as file:
             file.write("#EXTM3U\n\n")
     
     track_label_m3u = None
-    with open(m3u_path, 'a', encoding='utf-8') as file:
-        track_label_m3u = f"#EXTINF:{int(track_duration)}, {track_name}\n"
+    with open(m3u8_path, 'a', encoding='utf-8') as file:
+        track_label_m3u = f"#EXTINF:{duration_ms // 1000}, {track_name}\n"
         if Zotify.CONFIG.get_m3u8_relative_paths():
-            track_path = os.path.relpath(track_path, m3u_path.parent)
+            track_path = os.path.relpath(track_path, m3u8_path.parent)
         
         file.write(track_label_m3u)
         file.write(f"{track_path}\n\n")
     return track_label_m3u
 
 
-def fetch_m3u8_songs(m3u_path: PurePath) -> list[str] | None:
+def fetch_m3u8_songs(m3u8_path: PurePath) -> list[str] | None:
     """ Fetches the songs and associated file paths in an .m3u8 playlist"""
     
-    if not Path(m3u_path).exists():
+    if not Path(m3u8_path).exists():
         return
     
-    with open(m3u_path, 'r', encoding='utf-8') as file:
+    with open(m3u8_path, 'r', encoding='utf-8') as file:
         linesraw = file.readlines()[2:-1]
         # group by song and filepath
         # songsgrouped = []

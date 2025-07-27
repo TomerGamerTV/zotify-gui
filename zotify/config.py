@@ -368,7 +368,9 @@ class Config:
     @classmethod
     def get_output(cls, mode: str) -> str:
         v = cls.get(OUTPUT)
+        
         if v:
+            # User must include {disc_number} in OUTPUT if they want split album discs
             return v
         
         if mode == 'playlist':
@@ -384,7 +386,7 @@ class Config:
         else:
             raise ValueError()
         
-        if cls.get_split_album_discs():
+        if cls.get_split_album_discs() and mode == "album":
             return str(PurePath(v).parent / 'Disc {disc_number}' / PurePath(v).name)
         return v
     

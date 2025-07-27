@@ -11,14 +11,14 @@ def get_album_info(album_id: str) -> tuple[str, str, list[dict], int, bool]:
     (raw, resp) = Zotify.invoke_url(f'{ALBUM_URL}/{album_id}')
     
     album_name = fix_filename(resp[NAME])
-    album_artist = resp[ARTISTS][0][NAME]
+    album_artists = [artist[NAME] for artist in resp[ARTISTS]]
     compilation = resp[ALBUM_TYPE] == COMPILATION
     
     tracks = Zotify.invoke_url_nextable(f'{ALBUM_URL}/{album_id}/tracks', ITEMS)
     
     total_discs = tracks[-1][DISC_NUMBER]
     
-    return album_name, album_artist, tracks, total_discs, compilation
+    return album_name, album_artists, tracks, total_discs, compilation
 
 
 def get_artist_album_ids(artist_id):
@@ -48,7 +48,7 @@ def download_artist_albums(artist, pbar_stack: list | None = None):
 
 def download_album(album_id: str, pbar_stack: list | None = None, M3U8_bypass: str | None = None) -> bool:
     """ Downloads songs from an album """
-    album_name, album_artist, tracks, total_discs, compilation = get_album_info(album_id)
+    album_name, album_artists, tracks, total_discs, compilation = get_album_info(album_id)
     char_num = max({len(str(len(tracks))), 2})
     
     if Zotify.CONFIG.get_skip_comp_albums() and compilation:
@@ -71,7 +71,7 @@ def download_album(album_id: str, pbar_stack: list | None = None, M3U8_bypass: s
     for n, track in enumerate(pbar, 1):
         
         extra_keys={'album_num': str(n).zfill(char_num), 
-                    'album_artist': album_artist, 
+                    'album_artists': album_artists, 
                     'album': album_name, 
                     'album_id': album_id,
                     'total_discs': total_discs}
