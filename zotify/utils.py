@@ -341,11 +341,11 @@ def fmt_duration(duration: float | int, unit_conv: tuple[int] = (60, 60), connec
     m = duration_mins % unit_conv[0]
     h = duration_mins // unit_conv[0]
     
-    if not any((h, m, s)):
-        return "0" + smallest_unit
-    
     if ALWAYS_ALL_UNITS:
         return f'{h}'.zfill(2) + connectors[0] + f'{m}'.zfill(2) + connectors[1] + f'{s}'.zfill(2)
+    
+    if not any((h, m, s)):
+        return "0" + smallest_unit
     
     if h == 0 and m == 0:
         return f'{s}' + smallest_unit
