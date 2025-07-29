@@ -28,6 +28,7 @@ from pkce import generate_code_verifier, get_code_challenge
 from requests import HTTPError, get, post
 from logging import getLogger
 getLogger("Librespot:AudioKeyManager").disabled = True
+getLogger("librespot.audio").disabled = True
 
 from zotify.const import AUTH_URL, BASE_URL, CLIENT_ID, SCOPES
 
