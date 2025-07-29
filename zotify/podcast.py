@@ -152,17 +152,18 @@ def download_episode(episode_id, pbar_stack: list | None = None) -> None:
             
             if codec in EXT_MAP:
                 suffix = EXT_MAP[codec]
-                episode_path = episode_path.with_suffix(f".{suffix}")
+                Path(episode_path).rename(episode_path.with_suffix(f".{suffix}"))
             else:
-                # gross, but shouldn't ever happen... 
-                episode_path = episode_path.with_suffix(f".{codec}")
+                # gross, but shouldn't ever happen...
+                Path(episode_path).rename(episode_path.with_suffix(f".{codec}"))
         
         Printer.debug(f"Detected Codec: {codec}\n" +\
                       f"File Renamed: {episode_path.name}")
     
     except ffmpy.FFExecutableNotFoundError:
-        episode_path = episode_path.with_suffix(f".mp3")
+        Path(episode_path).rename(episode_path.with_suffix(".mp3"))
         Printer.hashtaged(PrintChannel.WARNING, 'FFMPEG NOT FOUND\n' +\
                                                 'SKIPPING CODEC ANALYSIS - OUTPUT ASSUMED MP3')
+    
     
     wait_between_downloads()
