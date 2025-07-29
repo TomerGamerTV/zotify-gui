@@ -169,5 +169,4 @@ def download_episode(episode_id, pbar_stack: list | None = None) -> None:
         Printer.hashtaged(PrintChannel.WARNING, 'FFMPEG NOT FOUND\n' +\
                                                 'SKIPPING CODEC ANALYSIS - OUTPUT ASSUMED MP3')
     
-    
     wait_between_downloads()
