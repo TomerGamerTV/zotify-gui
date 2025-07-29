@@ -152,10 +152,14 @@ def download_episode(episode_id, pbar_stack: list | None = None) -> None:
             
             if codec in EXT_MAP:
                 suffix = EXT_MAP[codec]
-                Path(episode_path).rename(episode_path.with_suffix(f".{suffix}"))
             else:
                 # gross, but shouldn't ever happen...
-                Path(episode_path).rename(episode_path.with_suffix(f".{codec}"))
+                suffix = codec
+            
+            episode_path_codec = episode_path.with_suffix(f".{suffix}")
+            if Path(episode_path_codec).exists():
+                Path(episode_path_codec).unlink()
+            Path(episode_path).rename(episode_path_codec)
         
         Printer.debug(f"Detected Codec: {codec}\n" +\
                       f"File Renamed: {episode_path.name}")
