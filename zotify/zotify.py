@@ -17,12 +17,13 @@ class Zotify:
     SESSION: Session = None
     DOWNLOAD_QUALITY = None
     CONFIG: Config = Config()
+    DATETIME_LAUNCH = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    TOTAL_API_CALLS = 0
     
     def __init__(self, args):
         Zotify.CONFIG.load(args)
         with Loader(PrintChannel.MANDATORY, "Logging in..."):
             Zotify.login(args)
-        Zotify.datetime_launch = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     
     @classmethod
     def login(cls, args):
@@ -86,6 +87,7 @@ class Zotify:
         tryCount = 0
         while tryCount <= cls.CONFIG.get_retry_attempts():
             response = requests.get(url, headers=headers, params=_params)
+            cls.TOTAL_API_CALLS += 1
             
             try:
                 responsetext = response.text

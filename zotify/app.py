@@ -246,18 +246,15 @@ def client(args: Namespace) -> None:
         
         else:
             Printer.hashtaged(PrintChannel.ERROR, f'FILE {filename} NOT FOUND')
-        return
     
     elif args.urls:
         if len(args.urls) > 0:
             if len(args.urls) == 1 and " " in args.urls[0]:
                 args.urls = args.urls[0].split(' ')
             download_from_urls(args.urls)
-        return
     
     elif args.playlist:
         download_from_user_playlist()
-        return
     
     elif args.liked_songs:
         
@@ -275,7 +272,6 @@ def client(args: Namespace) -> None:
                 download_track('liked', song[TRACK][ID], None, pbar_stack)
                 pbar.set_description(song[TRACK][NAME])
                 Printer.refresh_all_pbars(pbar_stack)
-        return
     
     elif args.followed_artists:
         followed_artists = Zotify.invoke_url_nextable(USER_FOLLOWED_ARTISTS_URL, ITEMS, stripper=ARTISTS)
@@ -288,7 +284,6 @@ def client(args: Namespace) -> None:
             download_artist_albums(artist[ID], pbar_stack)
             pbar.set_description(artist[NAME])
             Printer.refresh_all_pbars(pbar_stack)
-        return
     
     elif args.search:
         if args.search == ' ':
@@ -300,7 +295,6 @@ def client(args: Namespace) -> None:
                 download_from_urls([args.search])
             else:
                 search(args.search)
-        return
     
     elif args.verify_library:
         # ONLY WORKS WITH ARCHIVED TRACKS (THEORETICALLY GUARANTEES BULK_URL TO WORK)
@@ -325,4 +319,5 @@ def client(args: Namespace) -> None:
     
     else:
         search(Printer.get_input('Enter search: '))
-        return
+    
+    Printer.debug(f"Total API Calls: {Zotify.TOTAL_API_CALLS}")

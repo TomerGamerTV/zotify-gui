@@ -443,9 +443,9 @@ def add_to_m3u8(duration_ms: int, track_name: str, track_path: PurePath, m3u8_pa
         m3u_dir = Zotify.CONFIG.get_m3u8_location()
         if m3u_dir is None:
             m3u_dir = track_path.parent
-        m3u8_path = m3u_dir / (Zotify.datetime_launch + "_zotify.m3u8")
+        m3u8_path = m3u_dir / (Zotify.DATETIME_LAUNCH + "_zotify.m3u8")
     elif m3u8_path.name == "Liked Songs.m3u8": # may get confused if playlist is named "Liked Songs"
-        m3u8_path = track_path.parent / (Zotify.datetime_launch + "_zotify.m3u8")
+        m3u8_path = track_path.parent / (Zotify.DATETIME_LAUNCH + "_zotify.m3u8")
         if not Path(track_path.parent / "Liked Songs.m3u8").exists() or "justCreatedLikedSongsM3U8" in globals():
             m3u8_path = track_path.parent / "Liked Songs.m3u8"
             global justCreatedLikedSongsM3U8; justCreatedLikedSongsM3U8 = True # hacky, terrible, truly awful: too bad!

@@ -258,7 +258,7 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                 if liked_m3u8:
                     if songs_m3u is not None and track_m3u8_label in songs_m3u[0]:
                         Zotify.CONFIG.Values[EXPORT_M3U8] = False
-                        Path(filedir / (Zotify.datetime_launch + "_zotify.m3u8")).replace(m3u8_path)
+                        Path(filedir / (Zotify.DATETIME_LAUNCH + "_zotify.m3u8")).replace(m3u8_path)
                         with open(m3u8_path, 'a', encoding='utf-8') as file:
                             file.writelines(songs_m3u[3:])
         
