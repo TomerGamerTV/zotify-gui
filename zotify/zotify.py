@@ -140,7 +140,7 @@ class Zotify:
             bulk_items = bulk_items[limit:]
             
             (raw, resp) = Zotify.invoke_url(url + items_batch)
-            items.extend(resp[stripper]) 
+            items.extend(resp[stripper])
         return items
     
     @classmethod
