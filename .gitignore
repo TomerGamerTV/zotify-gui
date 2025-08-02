@@ -149,6 +149,9 @@ cython_debug/
 .zotify/
 config.json
 
-#Download Folder
+# Download Folder
 Zotify\ Music/
 Zotify\ Podcasts/
+
+# Testing
+debug.py
