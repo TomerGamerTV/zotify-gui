@@ -6,7 +6,7 @@ from librespot.metadata import TrackId
 
 from zotify import __version__
 from zotify.const import TRACKS, ALBUM, GENRES, NAME, DISC_NUMBER, TRACK_NUMBER, TOTAL_TRACKS, \
-    IS_PLAYABLE, ARTISTS, ARTIST_IDS, IMAGES, URL, RELEASE_DATE, ID, TRACKS_URL, \
+    IS_PLAYABLE, ARTISTS, ARTIST_IDS, IMAGES, URL, RELEASE_DATE, ID, TRACK_URL, \
     CODEC_MAP, DURATION_MS, WIDTH, COMPILATION, ALBUM_TYPE, ARTIST_BULK_URL, YEAR, \
     ALBUM_ARTISTS, IMAGE_URL, EXPORT_M3U8
 from zotify.termoutput import Printer, PrintChannel, Loader
@@ -50,15 +50,15 @@ def parse_track_metadata(track_resp: dict) -> dict[str, list[str] | str | int | 
 def get_track_metadata(track_id) -> dict[str, list[str] | str | int | bool]:
     """ Retrieves metadata for downloaded songs """
     with Loader(PrintChannel.PROGRESS_INFO, "Fetching track information..."):
-        (raw, info) = Zotify.invoke_url(f'{TRACKS_URL}?ids={track_id}&market=from_token')
+        (raw, info) = Zotify.invoke_url(f'{TRACK_URL}?ids={track_id}&market=from_token')
         
         if not TRACKS in info:
-            raise ValueError(f'Invalid response from TRACKS_URL:\n{raw}')
+            raise ValueError(f'Invalid response from TRACK_URL:\n{raw}')
         
         try:
             return parse_track_metadata(info[TRACKS][0])
         except Exception as e:
-            raise ValueError(f'Failed to parse TRACKS_URL response: {str(e)}\n{raw}')
+            raise ValueError(f'Failed to parse TRACK_URL response: {str(e)}\n{raw}')
 
 
 def get_track_genres(artist_ids: list[str], track_name: str) -> list[str]:
@@ -187,7 +187,7 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
         else:
             album_id = total_tracks = None
             try:
-                (raw, info) = Zotify.invoke_url(f'{TRACKS_URL}?ids={track_id}&market=from_token')
+                (raw, info) = Zotify.invoke_url(f'{TRACK_URL}?ids={track_id}&market=from_token')
                 album_id = info[TRACKS][0][ALBUM][ID]
                 total_tracks = info[TRACKS][0][ALBUM][TOTAL_TRACKS]
             except:

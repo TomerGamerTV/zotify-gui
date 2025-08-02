@@ -4,7 +4,7 @@ from pathlib import Path, PurePath
 
 from zotify.album import download_album, download_artist_albums
 from zotify.const import TRACK, NAME, ID, ARTIST, ARTISTS, ITEMS, TRACKS, EXPLICIT, ALBUM, ALBUMS, OWNER, \
-    PLAYLIST, PLAYLISTS, DISPLAY_NAME, USER_FOLLOWED_ARTISTS_URL, USER_SAVED_TRACKS_URL, SEARCH_URL, TRACKS_BULK_URL
+    PLAYLIST, PLAYLISTS, DISPLAY_NAME, USER_FOLLOWED_ARTISTS_URL, USER_SAVED_TRACKS_URL, SEARCH_URL, TRACK_BULK_URL
 from zotify.playlist import get_playlist_info, download_from_user_playlist, download_playlist
 from zotify.podcast import download_episode, download_show
 from zotify.termoutput import Printer, PrintChannel
@@ -315,7 +315,7 @@ def client(args: Namespace) -> None:
                 track_paths.append(entry)
                 track_ids.append(archived_ids[archived_filenames.index(entry.stem)])
         
-        tracks = Zotify.invoke_url_bulk(TRACKS_BULK_URL, track_ids, TRACKS)
+        tracks = Zotify.invoke_url_bulk(TRACK_BULK_URL, track_ids, TRACKS)
         
         pos = 1
         pbar = Printer.pbar(track_paths, unit='tracks', pos=pos, 

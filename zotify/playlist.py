@@ -1,6 +1,6 @@
 from pathlib import PurePath, Path
 
-from zotify.const import USER_PLAYLISTS_URL, PLAYLISTS_URL, ITEMS, ID, TRACK, NAME, TYPE, TRACKS
+from zotify.const import USER_PLAYLISTS_URL, PLAYLIST_URL, ITEMS, ID, TRACK, NAME, TYPE, TRACKS
 from zotify.podcast import download_episode
 from zotify.termoutput import Printer, PrintChannel
 from zotify.track import parse_track_metadata, download_track
@@ -11,7 +11,7 @@ from zotify.zotify import Zotify
 def get_playlist_songs(playlist_id: str) -> tuple[list[str], list[dict]]:
     """ returns list of songs in a playlist """
     
-    playlist_tracks = Zotify.invoke_url_nextable(f'{PLAYLISTS_URL}/{playlist_id}/{TRACKS}', ITEMS, 100)
+    playlist_tracks = Zotify.invoke_url_nextable(f'{PLAYLIST_URL}/{playlist_id}/{TRACKS}', ITEMS, 100)
     
     playlist_tracks.sort(key=lambda s: strptime_utc(s['added_at']))
     
@@ -32,7 +32,7 @@ def get_playlist_songs(playlist_id: str) -> tuple[list[str], list[dict]]:
 
 def get_playlist_info(playlist_id) -> tuple[str, str]:
     """ Returns information scraped from playlist """
-    (raw, resp) = Zotify.invoke_url(f'{PLAYLISTS_URL}/{playlist_id}?fields=name,owner(display_name)&market=from_token')
+    (raw, resp) = Zotify.invoke_url(f'{PLAYLIST_URL}/{playlist_id}?fields=name,owner(display_name)&market=from_token')
     return resp['name'].strip(), resp['owner']['display_name'].strip()
 
 

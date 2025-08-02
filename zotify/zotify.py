@@ -7,7 +7,7 @@ from librespot.audio.decoders import VorbisOnlyAudioQuality
 
 from zotify import OAuth, Session
 from zotify.const import TYPE, \
-    PREMIUM, USER_READ_EMAIL, OFFSET, LIMIT, \
+    PREMIUM, USER_READ_EMAIL, OFFSET, LIMIT, ITEMS, \
     PLAYLIST_READ_PRIVATE, USER_LIBRARY_READ, USER_FOLLOW_READ
 from zotify.config import Config
 from zotify.termoutput import Printer, PrintChannel, Loader
@@ -121,8 +121,8 @@ class Zotify:
         return responsejson
     
     @classmethod
-    def invoke_url_nextable(cls, url: str, response_key: str, limit: int = 50, stripper: str | None = None) -> list:
-        resp = cls.invoke_url_with_params(url, limit=limit, offset=0)
+    def invoke_url_nextable(cls, url: str, response_key: str = ITEMS, limit: int = 50, stripper: str | None = None, offset: int = 0) -> list:
+        resp = cls.invoke_url_with_params(url, limit=limit, offset=offset)
         if stripper is not None:
             resp = resp[stripper]
         items: list = resp[response_key]

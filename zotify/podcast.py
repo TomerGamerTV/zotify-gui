@@ -2,7 +2,7 @@ import time
 from pathlib import PurePath, Path
 from librespot.metadata import EpisodeId
 
-from zotify.const import EPISODE_INFO_URL, SHOWS_URL, PARTNER_URL, PERSISTED_QUERY, ERROR, ID, ITEMS, NAME, SHOW, DURATION_MS
+from zotify.const import EPISODE_URL, SHOW_URL, PARTNER_URL, PERSISTED_QUERY, ERROR, ID, ITEMS, NAME, SHOW, DURATION_MS
 from zotify.termoutput import PrintChannel, Printer, Loader
 from zotify.utils import create_download_directory, fix_filename, fmt_duration, wait_between_downloads
 from zotify.zotify import Zotify
@@ -10,7 +10,7 @@ from zotify.zotify import Zotify
 
 def get_episode_info(episode_id: str) -> tuple[str | None, str | None, str | None]:
     with Loader(PrintChannel.PROGRESS_INFO, "Fetching episode information..."):
-        (raw, resp) = Zotify.invoke_url(f'{EPISODE_INFO_URL}/{episode_id}')
+        (raw, resp) = Zotify.invoke_url(f'{EPISODE_URL}/{episode_id}')
     if not resp:
         Printer.hashtaged(PrintChannel.ERROR, 'INVALID EPISODE ID')
     if ERROR in resp:
@@ -21,7 +21,7 @@ def get_episode_info(episode_id: str) -> tuple[str | None, str | None, str | Non
 
 def get_show_episode_ids(show_id: str) -> list:
     with Loader(PrintChannel.PROGRESS_INFO, "Fetching episodes..."):
-        episodes = Zotify.invoke_url_nextable(f'{SHOWS_URL}/{show_id}/episodes', ITEMS)
+        episodes = Zotify.invoke_url_nextable(f'{SHOW_URL}/{show_id}/episodes', ITEMS)
     return [episode[ID] for episode in episodes]
 
 
