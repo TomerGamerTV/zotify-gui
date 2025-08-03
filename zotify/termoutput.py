@@ -106,7 +106,7 @@ class Printer:
         global LAST_PRINT
         if LAST_PRINT is PrintCategory.DEBUG and category is PrintCategory.DEBUG:
             return msg
-        elif LAST_PRINT is PrintCategory.LOADER_CYCLE:
+        elif LAST_PRINT in {PrintCategory.LOADER, PrintCategory.LOADER_CYCLE}:
             if category is PrintCategory.LOADER:
                 return "\n" + PrintCategory.LOADER_CYCLE.value + msg
             elif "LOADER" not in category.name:
@@ -279,6 +279,7 @@ class Loader:
         
         self.done = False
         self.paused = False
+        self.dead = False
     
     def _loader_print(self, msg: str):
         Printer.new_print(self.channel, msg, self.category, loader=True)
@@ -308,13 +309,15 @@ class Loader:
             elif not self.paused:
                 self._loader_print(f"{c} {self.desc}")
             sleep(self.timeout)
+        self.dead = True
     
     def __enter__(self):
         self.start()
     
     def stop(self):
         self.done = True
-        sleep(self.timeout*2) #guarantee _animate has finished
+        while not self.dead: #guarantee _animate has finished
+            sleep(self.timeout) 
         self.category = PrintCategory.LOADER
         if self.end != "":
             self._loader_print(self.end)
