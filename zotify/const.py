@@ -86,20 +86,24 @@ PREMIUM = 'premium'
 # API URLs
 AUTH_URL = "https://accounts.sp" + "otify.com/"
 BASE_URL = 'https://api.sp' + 'otify.com/v1/'
+BULK_APPEND = 'ids='
+MARKET_APPEND = 'market=from_token'
 ALBUM_URL = BASE_URL + 'albums'
-ALBUM_BULK_URL = ALBUM_URL + '?ids='
+ALBUM_BULK_URL = ALBUM_URL + '?' + BULK_APPEND
 ARTIST_URL = BASE_URL + 'artists'
-ARTIST_BULK_URL = ARTIST_URL + '?ids='
+ARTIST_BULK_URL = ARTIST_URL + '?' + BULK_APPEND
 EPISODE_URL = BASE_URL + 'episodes'
 PLAYLIST_URL = BASE_URL + 'playlists'
 SEARCH_URL = BASE_URL + 'search'
 SHOW_URL = BASE_URL + 'shows'
 TRACK_URL = BASE_URL + 'tracks'
-TRACK_BULK_URL = TRACK_URL + '?ids='
+TRACK_BULK_URL = TRACK_URL + '?' + BULK_APPEND
 TRACK_STATS_URL = BASE_URL + 'audio-features/'
-USER_FOLLOWED_ARTISTS_URL = BASE_URL + 'me/following?type=artist'
-USER_PLAYLISTS_URL = BASE_URL + 'me/playlists'
-USER_SAVED_TRACKS_URL = BASE_URL + 'me/tracks'
+USER_URL = BASE_URL + 'me/'
+USER_FOLLOWED_ARTISTS_URL = USER_URL + 'following?type=artist'
+USER_PLAYLISTS_URL = USER_URL + 'playlists'
+USER_SAVED_TRACKS_URL = USER_URL + 'tracks'
+LYRICS_URL = 'https://spclient.wg.sp' + 'otify.com/color-lyrics/v2/track/'
 PARTNER_URL = 'https://api-partner.sp' + 'otify.com/pathfinder/v1/query?operationName=getEpisode&variables={"uri":"sp' + 'otify:episode:'
 PERSISTED_QUERY = '{"persistedQuery":{"version":1,"sha256Hash":"224ba0fd89fcfdfb'+'3a15fa2d82a6112d'+'3f4e2ac88fba5c67'+'13de04d1b72cf482"}}'
 
