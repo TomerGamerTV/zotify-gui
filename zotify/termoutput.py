@@ -70,6 +70,8 @@ class Printer:
                 return "LIST REMOVED FOR BREVITY"
             elif k in {EXTERNAL_URLS, PREVIEW_URL}:
                 return "URL REMOVED FOR BREVITY"
+            elif k in {"_children"}:
+                return "SET REMOVED FOR BREVITY"
             elif k in {"metadata_block_picture", "APIC:0", "covr"}:
                 return "BYTES REMOVED FOR BREVITY"
             return None
