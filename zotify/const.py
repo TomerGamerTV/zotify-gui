@@ -80,6 +80,7 @@ PREMIUM = 'premium'
 AUTH_URL = "https://accounts.sp" + "otify.com/"
 BASE_URL = 'https://api.sp' + 'otify.com/v1/'
 ALBUM_URL = BASE_URL + 'albums'
+ALBUM_BULK_URL = ALBUM_URL + '?ids='
 ARTIST_URL = BASE_URL + 'artists'
 ARTIST_BULK_URL = ARTIST_URL + '?ids='
 EPISODE_URL = BASE_URL + 'episodes'
