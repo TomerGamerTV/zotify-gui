@@ -422,17 +422,17 @@ def get_directory_song_ids(download_path: str) -> list[str]:
     return track_ids
 
 
-def add_to_directory_song_archive(download_path: str, track_id: str, filename: str, author_name: str, track_name: str) -> None:
+def add_to_directory_song_archive(track_path: PurePath, track_id: str, author_name: str, track_name: str) -> None:
     """ Appends song_id to .song_ids file in directory """
     
     if Zotify.CONFIG.get_disable_directory_archives():
         return
     
-    hidden_file_path = PurePath(download_path).joinpath('.song_ids')
+    hidden_file_path = track_path.parent / '.song_ids'
     # not checking if file exists because we need an exception
     # to be raised if something is wrong
     with open(hidden_file_path, 'a', encoding='utf-8') as file:
-        file.write(f'{track_id}\t{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\t{author_name}\t{track_name}\t{filename}\n')
+        file.write(f'{track_id}\t{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\t{author_name}\t{track_name}\t{track_path.name}\n')
 
 
 # Playlist File Utils

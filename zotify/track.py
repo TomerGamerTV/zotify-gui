@@ -351,7 +351,7 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                     if not in_global_songids:
                         add_to_song_archive(track_metadata[ID], PurePath(track_path).name, track_metadata[ARTISTS][0], track_name)
                     if not in_dir_songids:
-                        add_to_directory_song_archive(filedir, track_metadata[ID], PurePath(track_path).name, track_metadata[ARTISTS][0], track_name)
+                        add_to_directory_song_archive(track_path, track_metadata[ID], track_metadata[ARTISTS][0], track_name)
                     
                     wait_between_downloads()
             
