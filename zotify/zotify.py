@@ -123,7 +123,7 @@ class Zotify:
         return responsejson
     
     @classmethod
-    def invoke_url_nextable(cls, url: str, response_key: str = ITEMS, limit: int = 50, stripper: str | None = None, offset: int = 0) -> list:
+    def invoke_url_nextable(cls, url: str, response_key: str = ITEMS, limit: int = 50, stripper: str | None = None, offset: int = 0) -> list[dict]:
         resp = cls.invoke_url_with_params(url, limit=limit, offset=offset)
         if stripper is not None:
             resp = resp[stripper]
@@ -135,7 +135,7 @@ class Zotify:
         return items
     
     @classmethod
-    def invoke_url_bulk(cls, url: str, bulk_items: list[str], stripper: str, limit: int = 50) -> list:
+    def invoke_url_bulk(cls, url: str, bulk_items: list[str], stripper: str, limit: int = 50) -> list[dict]:
         items = []
         while len(bulk_items):
             items_batch = '%2c'.join(bulk_items[:limit])
