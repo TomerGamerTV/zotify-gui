@@ -400,9 +400,12 @@ def convert_audio_format(track_path) -> None:
         if Path(temp_track_path).exists():
             Path(temp_track_path).unlink()
         
-    except ffmpy.FFExecutableNotFoundError:
-        Printer.hashtaged(PrintChannel.WARNING, 'FFMPEG NOT FOUND\n' +\
-                                               f'SKIPPING CONVERSION TO {file_codec.upper()}')
+    except Exception as e:
+        if isinstance(e, ffmpy.FFExecutableNotFoundError):
+            reason = 'FFMPEG NOT FOUND\n'
+        else:
+            reason = str(e) + "\n"
+        Printer.hashtaged(PrintChannel.WARNING, reason + f'SKIPPING CONVERSION TO {file_codec.upper()}')
     
     time_ffmpeg_end = time.time()
     return fmt_duration(time_ffmpeg_end - time_ffmpeg_start)

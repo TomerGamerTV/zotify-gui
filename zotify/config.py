@@ -436,8 +436,13 @@ class Config:
     @classmethod
     def get_ffmpeg_log_level(cls) -> str:
         level = cls.get(FFMPEG_LOG_LEVEL)
-        if level not in {"trace", "verbose", "info", "warning", "error", "fatal", "panic", "quiet"}:
-            raise ValueError()
+        # see https://ffmpeg.org/ffmpeg.html#Generic-options, -loglevel
+        valid_levels = {"trace", "debug", "verbose", "info", "warning", "error", "fatal", "panic", "quiet"}
+        
+        if level == "warn": level += "ing"
+        if level not in valid_levels:
+            raise ValueError(f'FFMPEG LOGGING LEVEL "{level}" NOT VALID\n' +\
+                             f'SELECT FROM: {valid_levels}')
         return level
     
     @classmethod
