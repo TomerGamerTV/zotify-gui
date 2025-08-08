@@ -4,10 +4,10 @@ import subprocess
 from pathlib import PurePath, Path
 from librespot.metadata import EpisodeId
 
+from zotify.config import Zotify
 from zotify.const import EPISODE_URL, SHOW_URL, PARTNER_URL, PERSISTED_QUERY, ERROR, ID, ITEMS, NAME, SHOW, DURATION_MS, EXT_MAP
 from zotify.termoutput import PrintChannel, Printer, Loader
 from zotify.utils import create_download_directory, fix_filename, fmt_duration, wait_between_downloads
-from zotify.zotify import Zotify
 
 
 def get_episode_info(episode_id: str) -> tuple[str | None, str | None, str | None]:

@@ -118,13 +118,15 @@ class Printer:
     def new_print(channel: PrintChannel, msg: str, category: PrintCategory = PrintCategory.NONE, loader: bool = False, end: str = "\n") -> None:
         global LAST_PRINT
         if channel != PrintChannel.MANDATORY:
-            from zotify.zotify import Zotify
+            from zotify.config import Zotify
         if channel == PrintChannel.MANDATORY or Zotify.CONFIG.get(channel.value):
             global ACTIVE_LOADER
             if not loader and ACTIVE_LOADER:
                 ACTIVE_LOADER.pause()
             msg = Printer._print_prefixes(msg, category, channel)
-            for line in str(msg).splitlines():
+            if channel == PrintChannel.DEBUG and Zotify.CONFIG.logger:
+                Zotify.CONFIG.logger.debug(msg.strip().replace("DEBUG", "\n") + "\n")
+            for line in str(msg).splitlines():   
                 if end == "\n": 
                     tqdm.write(line.ljust(Printer._term_cols()))
                 else:

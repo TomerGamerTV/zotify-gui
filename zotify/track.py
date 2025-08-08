@@ -5,6 +5,7 @@ from pathlib import Path, PurePath
 from librespot.metadata import TrackId
 
 from zotify import __version__
+from zotify.config import Zotify
 from zotify.const import TRACKS, ALBUM, GENRES, NAME, DISC_NUMBER, TRACK_NUMBER, TOTAL_TRACKS, \
     IS_PLAYABLE, ARTISTS, ARTIST_IDS, IMAGES, URL, RELEASE_DATE, ID, TRACK_URL, \
     CODEC_MAP, DURATION_MS, WIDTH, COMPILATION, ALBUM_TYPE, ARTIST_BULK_URL, YEAR, \
@@ -14,7 +15,6 @@ from zotify.utils import fill_output_template, set_audio_tags, set_music_thumbna
     add_to_m3u8, fetch_m3u8_songs, get_directory_song_ids, add_to_directory_song_archive, \
     get_archived_song_ids, add_to_song_archive, fmt_duration, wait_between_downloads, conv_artist_format, \
     conv_genre_format, compare_audio_tags, fix_filename
-from zotify.zotify import Zotify
 
 
 def parse_track_metadata(track_resp: dict) -> dict[str, list[str] | str | int | bool]:

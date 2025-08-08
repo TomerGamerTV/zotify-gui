@@ -3,6 +3,7 @@ from librespot.audio.decoders import AudioQuality
 from pathlib import Path, PurePath
 
 from zotify.album import download_album, download_artist_albums
+from zotify.config import Zotify
 from zotify.const import TRACK, NAME, ID, ARTIST, ARTISTS, ITEMS, TRACKS, EXPLICIT, ALBUM, ALBUMS, OWNER, \
     PLAYLIST, PLAYLISTS, DISPLAY_NAME, USER_FOLLOWED_ARTISTS_URL, USER_SAVED_TRACKS_URL, SEARCH_URL, TRACK_BULK_URL
 from zotify.playlist import get_playlist_info, download_from_user_playlist, download_playlist
@@ -10,7 +11,6 @@ from zotify.podcast import download_episode, download_show
 from zotify.termoutput import Printer, PrintChannel
 from zotify.track import download_track, update_track_metadata
 from zotify.utils import split_sanitize_intrange, regex_input_for_urls, walk_directory_for_tracks, get_archived_entries
-from zotify.zotify import Zotify
 
 
 def download_from_urls(urls: list[str]) -> int:

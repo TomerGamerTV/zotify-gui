@@ -10,9 +10,9 @@ from mutagen.id3 import TXXX
 from time import sleep
 from pathlib import Path, PurePath
 
+from zotify.config import Zotify
 from zotify.const import ALBUMARTIST, ARTIST, TRACKTITLE, ALBUM, YEAR, DISCNUMBER, TRACKNUMBER, ARTWORK, \
     TOTALTRACKS, TOTALDISCS, EXT_MAP, LYRICS, COMPILATION, GENRE, EXT_MAP, MP3_TRACKID, M4A_TRACKID
-from zotify.zotify import Zotify
 from zotify.termoutput import PrintChannel, Printer
 
 

@@ -1,8 +1,8 @@
+from zotify.config import Zotify
 from zotify.const import ALBUM_URL, ARTIST_URL, ITEMS, ARTISTS, NAME, ID, DISC_NUMBER, ALBUM_TYPE, COMPILATION, AVAIL_MARKETS
 from zotify.termoutput import Printer, PrintChannel, Loader
 from zotify.track import download_track
 from zotify.utils import fix_filename
-from zotify.zotify import Zotify
 
 
 def get_album_info(album_id: str) -> tuple[str, str, list[dict], int, bool]:

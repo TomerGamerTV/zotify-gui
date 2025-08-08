@@ -1,11 +1,11 @@
 from pathlib import PurePath, Path
 
+from zotify.config import Zotify
 from zotify.const import USER_PLAYLISTS_URL, PLAYLIST_URL, ITEMS, ID, TRACK, NAME, TYPE, TRACKS
 from zotify.podcast import download_episode
 from zotify.termoutput import Printer, PrintChannel
 from zotify.track import parse_track_metadata, download_track
 from zotify.utils import split_sanitize_intrange, strptime_utc, fill_output_template
-from zotify.zotify import Zotify
 
 
 def get_playlist_songs(playlist_id: str) -> tuple[list[str], list[dict]]:
