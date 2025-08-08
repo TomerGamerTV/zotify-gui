@@ -115,16 +115,16 @@ class Printer:
         return category.value + msg
     
     @staticmethod
-    def _toggle_active_loader(loader: bool = False):
+    def _toggle_active_loader(skip_toggle: bool = False):
         global ACTIVE_LOADER
-        if not loader and ACTIVE_LOADER:
+        if not skip_toggle and ACTIVE_LOADER:
             if ACTIVE_LOADER.paused:
                 ACTIVE_LOADER.resume()
             else:
                 ACTIVE_LOADER.pause()
     
     @staticmethod
-    def new_print(channel: PrintChannel, msg: str, category: PrintCategory = PrintCategory.NONE, loader: bool = False, end: str = "\n") -> None:
+    def new_print(channel: PrintChannel, msg: str, category: PrintCategory = PrintCategory.NONE, skip_toggle: bool = False, end: str = "\n") -> None:
         global LAST_PRINT
         if channel != PrintChannel.MANDATORY:
             from zotify.config import Zotify
@@ -132,21 +132,21 @@ class Printer:
             msg = Printer._print_prefixes(msg, category, channel)
             if channel == PrintChannel.DEBUG and Zotify.CONFIG.logger:
                 Zotify.CONFIG.logger.debug(msg.strip().replace("DEBUG", "\n") + "\n")
-            Printer._toggle_active_loader(loader)
+            Printer._toggle_active_loader(skip_toggle)
             for line in str(msg).splitlines():   
                 if end == "\n": 
                     tqdm.write(line.ljust(Printer._term_cols()))
                 else:
                     tqdm.write(line, end=end)
                 LAST_PRINT = category
-            Printer._toggle_active_loader(loader)
+            Printer._toggle_active_loader(skip_toggle)
     
     @staticmethod
     def get_input(prompt: str) -> str:
         user_input = ""
         Printer._toggle_active_loader()
         while len(user_input) == 0:
-            Printer.new_print(PrintChannel.MANDATORY, prompt, PrintCategory.GENERAL, end="")
+            Printer.new_print(PrintChannel.MANDATORY, prompt, PrintCategory.GENERAL, end="", skip_toggle=True)
             user_input = str(input())
         Printer._toggle_active_loader()
         return user_input
@@ -292,7 +292,7 @@ class Loader:
         self.dead = False
     
     def _loader_print(self, msg: str):
-        Printer.new_print(self.channel, msg, self.category, loader=True)
+        Printer.new_print(self.channel, msg, self.category, skip_toggle=True)
         
         if self.category is PrintCategory.LOADER:
             self.category = PrintCategory.LOADER_CYCLE
