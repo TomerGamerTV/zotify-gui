@@ -236,8 +236,8 @@ def client(args: Namespace) -> None:
     Zotify.DOWNLOAD_QUALITY = quality_options[Zotify.CONFIG.get_download_quality()]
     
     if args.file_of_urls:
-        urls = []
-        filename = args.file_of_urls
+        urls: list[str] = []
+        filename: str = args.file_of_urls
         if Path(filename).exists():
             with open(filename, 'r', encoding='utf-8') as file:
                 urls.extend([line.strip() for line in file.readlines()])
