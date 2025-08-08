@@ -115,32 +115,40 @@ class Printer:
         return category.value + msg
     
     @staticmethod
+    def _toggle_active_loader(loader: bool = False):
+        global ACTIVE_LOADER
+        if not loader and ACTIVE_LOADER:
+            if ACTIVE_LOADER.paused:
+                ACTIVE_LOADER.resume()
+            else:
+                ACTIVE_LOADER.pause()
+    
+    @staticmethod
     def new_print(channel: PrintChannel, msg: str, category: PrintCategory = PrintCategory.NONE, loader: bool = False, end: str = "\n") -> None:
         global LAST_PRINT
         if channel != PrintChannel.MANDATORY:
             from zotify.config import Zotify
         if channel == PrintChannel.MANDATORY or Zotify.CONFIG.get(channel.value):
-            global ACTIVE_LOADER
-            if not loader and ACTIVE_LOADER:
-                ACTIVE_LOADER.pause()
             msg = Printer._print_prefixes(msg, category, channel)
             if channel == PrintChannel.DEBUG and Zotify.CONFIG.logger:
                 Zotify.CONFIG.logger.debug(msg.strip().replace("DEBUG", "\n") + "\n")
+            Printer._toggle_active_loader(loader)
             for line in str(msg).splitlines():   
                 if end == "\n": 
                     tqdm.write(line.ljust(Printer._term_cols()))
                 else:
                     tqdm.write(line, end=end)
                 LAST_PRINT = category
-            if not loader and ACTIVE_LOADER:
-                ACTIVE_LOADER.resume()
+            Printer._toggle_active_loader(loader)
     
     @staticmethod
     def get_input(prompt: str) -> str:
         user_input = ""
+        Printer._toggle_active_loader()
         while len(user_input) == 0:
             Printer.new_print(PrintChannel.MANDATORY, prompt, PrintCategory.GENERAL, end="")
             user_input = str(input())
+        Printer._toggle_active_loader()
         return user_input
     
     # Print Wrappers
