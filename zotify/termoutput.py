@@ -215,6 +215,10 @@ class Printer:
         "> OR PARTICULAR OPTIONS BY ADDING A COMMA BETWEEN ID's\n"
         )
     
+    @staticmethod
+    def back_up() -> None:
+        Printer.new_print(PrintChannel.MANDATORY, UP_ONE_LINE, PrintCategory.GENERAL, end="")
+    
     # Progress Bars
     @staticmethod
     def pbar(iterable=None, desc=None, total=None, unit='it', 
