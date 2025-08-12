@@ -176,26 +176,19 @@ class Config:
                 full_config_path = full_config_path.parent / (full_config_path.stem + "_DEBUG.json")
             with open(full_config_path, 'w' if full_config_path.exists() else 'x', encoding='utf-8') as debug_file:
                 json.dump(cls.parse_config_jsonstr(), debug_file, indent=4)
-            Printer.hashtaged(PrintChannel.MANDATORY, f"{full_config_path.name} saved to {full_config_path.resolve().parent}")
+            real_debug = cls.Values[DEBUG]; cls.Values[DEBUG] = True
+            Printer.hashtaged(PrintChannel.DEBUG, f"{full_config_path.name} saved to {full_config_path.resolve().parent}")
+            cls.Values[DEBUG] = real_debug
         
         # Override config from commandline arguments
         for key in CONFIG_VALUES:
             if key.lower() in vars(args) and vars(args)[key.lower()] is not None:
                 cls.Values[key] = cls.parse_arg_value(key, vars(args)[key.lower()])
         
-        # Confirm regex patterns
-        if cls.get_regex_enabled():
-            for mode in ["Track", "Episode", "Album"]:
-                regex_method: Callable[[None], None | re.Pattern] = getattr(cls, f"get_regex_{mode.lower()}")
-                if regex_method(): Printer.hashtaged(PrintChannel.MANDATORY, f'{mode} Regex Filter:  r"{regex_method().pattern}"')
-        
-        # Check no-splash
-        if args.no_splash:
-            cls.Values[PRINT_SPLASH] = False
-        
         # Handle sub-library logging
-        if cls.Values[DEBUG]:
-            logfile = cls.get_root_path()/f"zotify_DEBUG_{Zotify.DATETIME_LAUNCH}.log"
+        if cls.debug():
+            logfile = Path(cls.get_root_path()/f"zotify_DEBUG_{Zotify.DATETIME_LAUNCH}.log")
+            Printer.hashtaged(PrintChannel.DEBUG, f"{logfile.name} logging to {logfile.resolve().parent}")
             logging.basicConfig(level=logging.DEBUG, filemode="x", filename=logfile)
             cls.logger = logging.getLogger("zotify.debug")
         else:
@@ -203,6 +196,17 @@ class Config:
             # mutedLoggers = {"Librespot:Session", "Librespot:AudioKeyManager", "librespot.audio", "Librespot:CdnManager"}
             # for logger in mutedLoggers:
             #     logging.getLogger(logger).disabled = True
+        
+        # Confirm regex patterns
+        if cls.get_regex_enabled():
+            for mode in ["Track", "Episode", "Album"]:
+                regex_method: Callable[[None], None | re.Pattern] = getattr(cls, f"get_regex_{mode.lower()}")
+                if regex_method(): Printer.hashtaged(PrintChannel.DEBUG, f'{mode} Regex Filter:  r"{regex_method().pattern}"')
+        
+        # Check no-splash
+        if args.no_splash:
+            cls.Values[PRINT_SPLASH] = False
+        
     
     @classmethod
     def get_default_json(cls) -> dict:

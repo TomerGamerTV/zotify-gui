@@ -94,25 +94,29 @@ class Printer:
         return obj
     
     @staticmethod
-    def _print_prefixes(msg: str, category: PrintCategory, channel: PrintChannel) -> str:
+    def _print_prefixes(msg: str, category: PrintCategory, channel: PrintChannel) -> tuple[str, PrintCategory]:
         if category is PrintCategory.HASHTAG:
             if channel in {PrintChannel.WARNING, PrintChannel.ERROR, PrintChannel.API_ERROR,
                            PrintChannel.SKIPPING,}:
                 msg = channel.name + ":  " + msg
             msg =  msg.replace("\n", "   ###\n###   ") + "   ###"
+            if channel is PrintChannel.DEBUG:
+                msg = category.value.replace("\n", "", 1) + msg
+                category = PrintCategory.DEBUG
         elif category is PrintCategory.JSON:
             msg = "#" * (Printer._term_cols()-1) + "\n" + msg + "\n" + "#" * Printer._term_cols()
         
         global LAST_PRINT
         if LAST_PRINT is PrintCategory.DEBUG and category is PrintCategory.DEBUG:
-            return msg
-        elif LAST_PRINT in {PrintCategory.LOADER, PrintCategory.LOADER_CYCLE}:
-            if category is PrintCategory.LOADER:
-                return "\n" + PrintCategory.LOADER_CYCLE.value + msg
-            elif "LOADER" not in category.name:
-                return category.value.replace("\n", "", 1) + msg
+            pass
+        elif LAST_PRINT in {PrintCategory.LOADER, PrintCategory.LOADER_CYCLE} and category is PrintCategory.LOADER:
+            msg = "\n" + PrintCategory.LOADER_CYCLE.value + msg
+        elif LAST_PRINT in {PrintCategory.LOADER, PrintCategory.LOADER_CYCLE} and "LOADER" not in category.name:
+            msg = category.value.replace("\n", "", 1) + msg
+        else:
+            msg = category.value + msg
         
-        return category.value + msg
+        return msg, category
     
     @staticmethod
     def _toggle_active_loader(skip_toggle: bool = False):
@@ -129,7 +133,7 @@ class Printer:
         if channel != PrintChannel.MANDATORY:
             from zotify.config import Zotify
         if channel == PrintChannel.MANDATORY or Zotify.CONFIG.get(channel.value):
-            msg = Printer._print_prefixes(msg, category, channel)
+            msg, category = Printer._print_prefixes(msg, category, channel)
             if channel == PrintChannel.DEBUG and Zotify.CONFIG.logger:
                 Zotify.CONFIG.logger.debug(msg.strip().replace("DEBUG", "\n") + "\n")
             Printer._toggle_active_loader(skip_toggle)
