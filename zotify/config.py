@@ -1,15 +1,17 @@
 import datetime
 import logging
 import json
+import base64
 import sys
 import re
 import requests
-from librespot.audio.decoders import VorbisOnlyAudioQuality
+from librespot.audio.decoders import VorbisOnlyAudioQuality, AudioQuality
+from librespot.core import Session, OAuth
+from librespot.proto.Authentication_pb2 import AuthenticationType
 from pathlib import Path, PurePath
 from time import sleep
 from typing import Any, Callable
 
-from zotify import OAuth, Session
 from zotify.const import *
 from zotify.termoutput import Printer, PrintChannel, Loader
 
@@ -93,7 +95,6 @@ CONFIG_VALUES = {
     # API Options
     RETRY_ATTEMPTS:             { 'default': '1',                       'type': int,    'arg': ('--retry-attempts'                       ,) },
     CHUNK_SIZE:                 { 'default': '20000',                   'type': int,    'arg': ('--chunk-size'                           ,) },
-    OAUTH_ADDRESS:              { 'default': '0.0.0.0',                 'type': str,    'arg': ('--oauth-address'                        ,) },
     REDIRECT_ADDRESS:           { 'default': '127.0.0.1',               'type': str,    'arg': ('--redirect-address'                     ,) },
     
     # Terminal & Logging Options
@@ -117,6 +118,8 @@ DEPRECIATED_CONFIGS = {
     "SONG_ARCHIVE":               { 'default': '',                        'type': str,    'arg': ('--song-archive'                         ,) },
     "OVERRIDE_AUTO_WAIT":         { 'default': 'False',                   'type': bool,   'arg': ('--override-auto-wait'                   ,) },
     "REDIRECT_URI":               { 'default': '127.0.0.1:4381',          'type': str,    'arg': ('--redirect-uri'                         ,) },
+    "OAUTH_ADDRESS":              { 'default': '0.0.0.0',                 'type': str,    'arg': ('--oauth-address'                        ,) },
+    
 }
 
 
@@ -520,8 +523,11 @@ class Config:
         return cls.get(DOWNLOAD_PARENT_ALBUM)
     
     @classmethod
-    def get_oauth_addresses(cls) -> tuple[str, str]:
-        return cls.get(REDIRECT_ADDRESS), cls.get(OAUTH_ADDRESS)
+    def get_oauth_address(cls) -> tuple[str, str]:
+        redirect_address = cls.get(REDIRECT_ADDRESS)
+        if redirect_address:
+            return redirect_address
+        return '127.0.0.1'
     
     @classmethod
     def get_skip_comp_albums(cls) -> bool:
@@ -573,28 +579,38 @@ class Zotify:
     @classmethod
     def login(cls, args):
         """ Authenticates and saves credentials to a file """
-        # Create session
-        if args.username not in {None, ""} and args.token not in {None, ""}:
-            oauth = OAuth(args.username, *cls.CONFIG.get_oauth_addresses())
-            oauth.set_token(args.token, OAuth.RequestType.REFRESH)
-            cls.SESSION = Session.from_oauth(
-                oauth, cls.CONFIG.get_credentials_location(), cls.CONFIG.get_language()
-            )
-        elif cls.CONFIG.get_credentials_location() and Path(cls.CONFIG.get_credentials_location()).exists():
-            cls.SESSION = Session.from_file(
-                cls.CONFIG.get_credentials_location(),
-                cls.CONFIG.get_language(),
-            )
+        
+        creds = cls.CONFIG.get_credentials_location()
+        if creds and Path(creds).exists():
+            cls.SESSION = Session.Builder().stored_file(creds).create()
+            return
+        
+        port = 4381
+        redirect_url = f"http://{cls.CONFIG.get_oauth_address()}:{port}/login"
+        session_builder = Session.Builder() # stored_credentials_file == True by default
+        if creds:
+            session_builder.conf.stored_credentials_file = str(creds)
         else:
-            username = args.username
-            if not username:
-                username = Printer.get_input("Username: ")
-            oauth = OAuth(username, *cls.CONFIG.get_oauth_addresses())
-            auth_url = oauth.auth_interactive()
-            Printer.new_print(PrintChannel.MANDATORY, f"Click on the following link to login:\n{auth_url}")
-            cls.SESSION = Session.from_oauth(
-                oauth, cls.CONFIG.get_credentials_location(), cls.CONFIG.get_language()
-            )
+            session_builder.conf.store_credentials = False
+            session_builder.conf.stored_credentials_file = ""
+        
+        if args.username not in {None, ""} and args.token not in {None, ""}:
+            try:
+                auth_obj = {"username": args.username,
+                            "credentials": args.token,
+                            "type": AuthenticationType.keys()[1]}
+                auth_as_bytes = base64.b64encode(json.dumps(auth_obj, ensure_ascii=True).encode("ascii"))
+                cls.SESSION = session_builder.stored(auth_as_bytes).create()
+                return
+            except:
+                Printer.hashtaged(PrintChannel.MANDATORY, f"Login via commandline args failed! Falling back to interactive login")
+        
+        def oauth_print(url):
+            Printer.new_print(PrintChannel.MANDATORY, f"Click on the following link to login:\n{url}")
+        
+        session_builder.login_credentials = OAuth(CLIENT_ID, redirect_url, oauth_print).flow()
+        cls.SESSION = session_builder.create()
+        return
     
     @classmethod
     def get_content_stream(cls, content_id, quality):
