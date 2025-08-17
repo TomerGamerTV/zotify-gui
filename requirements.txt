@@ -1,5 +1,5 @@
 ffmpy
-git+https://github.com/kokarare1212/librespot-python
+git+https://github.com/Googolplexed0/librespot-python.git@login5-auth
 music_tag
 Pillow
 pkce
