@@ -148,7 +148,7 @@ def download_episode(episode_id, pbar_stack: list | None = None) -> None:
                 inputs={episode_path: ["-show_entries", "stream=codec_name"]},
             )
             stdout, _ = ff_m.run(stdout=subprocess.PIPE)
-            codec = stdout.decode().strip().split("=")[1].split("\r")[0]
+            codec = stdout.decode().strip().split("=")[1].split("\r")[0].split("\n")[0]
             
             if codec in EXT_MAP:
                 suffix = EXT_MAP[codec]
