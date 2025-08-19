@@ -98,11 +98,14 @@ def download_episode(episode_id, pbar_stack: list | None = None) -> None:
             
             if stream is None:
                 Printer.hashtaged(PrintChannel.ERROR, 'SKIPPING EPISODE - FAILED TO GET CONTENT STREAM\n' +\
-                                                        f'Episode_ID: {str(episode_id)}')
+                                                     f'Episode_ID: {str(episode_id)}')
                 wait_between_downloads(); return
             
+            episode_path_exists = False
             total_size: int = stream.input_stream.size
-            episode_path_exists = Path(episode_path).is_file() and Path(episode_path).stat().st_size == total_size
+            for episode_file_match in Path(episode_path.parent).glob(episode_path.stem + ".*", case_sensitive=True):
+                episode_path_exists = episode_file_match.stat().st_size == total_size
+                if episode_path_exists: break
             if episode_path_exists and Zotify.CONFIG.get_skip_existing():
                 Printer.hashtaged(PrintChannel.SKIPPING, f'"{podcast_name} - {episode_name}" (EPISODE ALREADY EXISTS)')
                 wait_between_downloads(); return
