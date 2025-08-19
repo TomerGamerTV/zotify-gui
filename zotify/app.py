@@ -233,7 +233,8 @@ def client(args: Namespace) -> None:
         'high': AudioQuality.HIGH,
         'very_high': AudioQuality.VERY_HIGH
     }
-    Zotify.DOWNLOAD_QUALITY = quality_options[Zotify.CONFIG.get_download_quality()]
+    Zotify.DOWNLOAD_QUALITY = quality_options.get(Zotify.CONFIG.get_download_quality(),
+                                                  quality_options["auto"])
     
     if args.file_of_urls:
         urls: list[str] = []
