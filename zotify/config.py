@@ -585,8 +585,6 @@ class Zotify:
             cls.SESSION = Session.Builder().stored_file(creds).create()
             return
         
-        port = 4381
-        redirect_url = f"http://{cls.CONFIG.get_oauth_address()}:{port}/login"
         session_builder = Session.Builder() # stored_credentials_file == True by default
         if creds:
             session_builder.conf.stored_credentials_file = str(creds)
@@ -608,6 +606,8 @@ class Zotify:
         def oauth_print(url):
             Printer.new_print(PrintChannel.MANDATORY, f"Click on the following link to login:\n{url}")
         
+        port = 4381
+        redirect_url = f"http://{cls.CONFIG.get_oauth_address()}:{port}/login"
         session_builder.login_credentials = OAuth(CLIENT_ID, redirect_url, oauth_print).flow()
         cls.SESSION = session_builder.create()
         return

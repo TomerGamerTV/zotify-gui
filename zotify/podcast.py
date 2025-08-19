@@ -165,7 +165,7 @@ def download_episode(episode_id, pbar_stack: list | None = None) -> None:
             Path(episode_path).rename(episode_path_codec)
         
         Printer.debug(f"Detected Codec: {codec}\n" +\
-                      f"File Renamed: {episode_path.name}")
+                      f"File Renamed: {episode_path_codec.name}")
     
     except ffmpy.FFExecutableNotFoundError:
         Path(episode_path).rename(episode_path.with_suffix(".mp3"))
