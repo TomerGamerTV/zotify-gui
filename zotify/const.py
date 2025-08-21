@@ -84,7 +84,6 @@ WIDTH = 'width'
 WORDS = 'words'
 
 # API URLs
-AUTH_URL = "https://accounts.sp" + "otify.com/"
 BASE_URL = 'https://api.sp' + 'otify.com/v1/'
 BULK_APPEND = 'ids='
 MARKET_APPEND = 'market=from_token'
