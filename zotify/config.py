@@ -7,6 +7,7 @@ import re
 import requests
 from librespot.audio.decoders import VorbisOnlyAudioQuality
 from librespot.core import Session, OAuth
+from librespot.mercury import MercuryRequests
 from librespot.proto.Authentication_pb2 import AuthenticationType
 from pathlib import Path, PurePath
 from time import sleep
@@ -608,7 +609,7 @@ class Zotify:
         
         port = 4381
         redirect_url = f"http://{cls.CONFIG.get_oauth_address()}:{port}/login"
-        session_builder.login_credentials = OAuth(CLIENT_ID, redirect_url, oauth_print).flow()
+        session_builder.login_credentials = OAuth(MercuryRequests.keymaster_client_id, redirect_url, oauth_print).flow()
         cls.SESSION = session_builder.create()
         return
     

@@ -60,6 +60,7 @@ OFFSET = 'offset'
 OWNER = 'owner'
 PLAYLIST = 'playlist'
 PLAYLISTS = 'playlists'
+PREMIUM = 'premium'
 PREVIEW_URL = 'preview_url'
 PUBLIC = 'public'
 PUBLISHER = 'publisher'
@@ -75,18 +76,12 @@ TOTAL_TRACKS = 'total_tracks'
 TRACK = 'track'
 TRACKS = 'tracks'
 TRACK_NUMBER = 'track_number'
+TYPE = 'type'
 UNSYNCED = 'UNSYNCED'
 URL = 'url'
 URI = 'uri'
 WIDTH = 'width'
 WORDS = 'words'
-
-# Both
-TYPE = 'type'
-
-# API Account Attributes
-CLIENT_ID = "65b70807" + "3fc0480e" + "a92a0772" + "33ca87bd"
-PREMIUM = 'premium'
 
 # API URLs
 AUTH_URL = "https://accounts.sp" + "otify.com/"
