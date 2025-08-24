@@ -21,10 +21,12 @@ def download_from_urls(urls: list[str]) -> int:
     pbar = Printer.pbar(urls, unit='url', pos=pos, 
                         disable=not Zotify.CONFIG.get_show_url_pbar())
     pbar_stack = [pbar]
+    Printer.debug(f'Starting Download of {len(urls)} URLs')
     
     for url in pbar:
         result = regex_input_for_urls(url)
         if all({res is None for res in result}):
+            Printer.hashtaged(PrintChannel.WARNING, f'No valid content_id found in {url}, skipping...')
             continue
         
         track_id, album_id, playlist_id, episode_id, show_id, artist_id = result

@@ -576,6 +576,7 @@ class Zotify:
         Zotify.CONFIG.load(args)
         with Loader(PrintChannel.MANDATORY, "Logging in..."):
             Zotify.login(args)
+        Printer.debug("Session Initialized Successfully")
     
     @classmethod
     def login(cls, args):
