@@ -26,7 +26,7 @@
 - Python 3.10 or greater
 - FFmpeg
 
-## Installation
+## Installation And Updating
 
 <details open><summary><strong>Install as Executable</strong></summary>
 
@@ -41,6 +41,18 @@
 *Useable when launched as a Python module*
 
 `python -m pip install git+https://github.com/Googolplexed0/zotify.git`
+
+</details>
+
+<details><summary><strong>Updating</strong></summary>
+
+*Update in accordance with your install method*
+
+**If Executable (pipx):**
+`pipx install -f git+https://github.com/Googolplexed0/zotify.git`
+
+**If Module:**
+`python -m pip install --force-reinstall git+https://github.com/Googolplexed0/zotify.git`
 
 </details>
 
