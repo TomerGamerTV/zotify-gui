@@ -24,7 +24,7 @@ def download_from_urls(urls: list[str]) -> int:
     Printer.debug(f'Starting Download of {len(urls)} URLs')
     
     for url in pbar:
-        result = regex_input_for_urls(url)
+        result = regex_input_for_urls(url, non_global=True)
         if all({res is None for res in result}):
             Printer.hashtaged(PrintChannel.WARNING, f'No valid content_id found in {url}, skipping...')
             continue
