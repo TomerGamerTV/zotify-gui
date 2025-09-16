@@ -689,4 +689,4 @@ class Ui_MainWindow(object):
         self.label_2.setText(_translate("MainWindow", "Download Queue:"))
         self.downloadBtn.setText(_translate("MainWindow", "Download "))
         self.dirBtn.setToolTip(_translate("MainWindow", "Change download directory"))
-from view import SeekableSlider
+from .view import SeekableSlider
