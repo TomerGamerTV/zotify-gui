@@ -9,6 +9,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from .view import SeekableSlider
 
 
 class Ui_MainWindow(object):
@@ -689,4 +690,3 @@ class Ui_MainWindow(object):
         self.label_2.setText(_translate("MainWindow", "Download Queue:"))
         self.downloadBtn.setText(_translate("MainWindow", "Download "))
         self.dirBtn.setToolTip(_translate("MainWindow", "Change download directory"))
-from .view import SeekableSlider
