@@ -17,50 +17,67 @@
 - Download directly from URL or use built-in in search
 - Bulk downloads from a list of URLs in a text file or parsed directly as arguments
 
-\* Free accounts are limited to 160kbps \*\
+\* Free accounts are limited to 160kbps \*\*
 \*\* Audio files are NOT substituted with ones from other sources (such as YouTube or Deezer) \*\*\
 \*\*\* 'Real time' downloading limits at the speed of data transfer to typical streaming rates (download time ≈  duration of the track) \*\*\*
 
-## Dependencies
+## Installation
+
+### Dependencies
 
 - Python 3.10 or greater
 - FFmpeg
 
-## Installation And Updating
+### For the Command-Line Interface (CLI)
 
-<details open><summary><strong>Install as Executable</strong></summary>
+This guide uses *pipx* to manage Zotify.
+There are other ways to install and run Zotify but this is the official recommendation.
 
-*Useable across system from the command line*
+- **Windows:**
+  - Open PowerShell and run:
+  - `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`
+  - `irm get.scoop.sh | iex`
+  - `scoop install python ffmpeg-shared git`
+  - `python3 -m pip install --user pipx`
+  - `python3 -m pipx ensurepath`
+- **macOS:**
+  - Open the Terminal app and run:
+  - `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+  - `brew install python@3.11 pipx ffmpeg git`
+  - `pipx ensurepath`
+- **Linux:**
+  - Install `python3`, `pip`, `ffmpeg`, and `git` from your distribution's package manager.
+  - `python3 -m pip install --user pipx`
 
+After installing the dependencies, install Zotify with:
 `pipx install git+https://github.com/Googolplexed0/zotify.git`
 
-</details>
+### For the Graphical User Interface (GUI)
 
-<details><summary><strong>Install as Python Module</strong></summary>
+First, follow the instructions to install the CLI. Then, install the additional dependencies for the GUI:
 
-*Useable when launched as a Python module*
-
-`python -m pip install git+https://github.com/Googolplexed0/zotify.git`
-
-</details>
-
-<details><summary><strong>Updating</strong></summary>
-
-*Update in accordance with your install method*
-
-**If Executable (pipx):**
-`pipx install -f git+https://github.com/Googolplexed0/zotify.git`
-
-**If Module:**
-`python -m pip install --force-reinstall git+https://github.com/Googolplexed0/zotify.git`
-
-</details>
-
-### Advanced Installation Instructions
-
-See [INSTALLATION](INSTALLATION.md) for a more detailed and opinionated installation walkthrough.
+`python3 -m pip install PyQt5 pyqtdarktheme requests pydub`
 
 ## Usage
+
+### Graphical User Interface (GUI)
+
+To launch the GUI, run the following command in your terminal:
+
+`python3 -m zotify.gui.main`
+
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/93454665/142783298-9550720a-c5c1-4714-8952-285c852f52d1.png">
+</p>
+
+The GUI allows you to:
+- Login to your account securely.
+- Search for tracks, albums, artists, and playlists.
+- View and download your liked songs.
+- Download music with a single click.
+- Configure settings like download format and directory.
+
+### Command-Line Interface (CLI)
 
 `(python -m) zotify <track/album/playlist/episode/artist url>`
 
@@ -195,121 +212,6 @@ Set arguments in the commandline like this: `-ie False` or `--codec mp3`. Wrap c
 | `FFMPEG_LOG_LEVEL`           | `--ffmpeg-log-level`                | FFMPEG's logged level of detail when completing a transcoded download        | error                     |
 
 \* very_high (320k) is limited to Premium accounts only  
-
-</details>
-
-## Configuration Files
-
-Using the `-c` (`--config-location`) flag does not set an alternate config location permanently. Alternate config locations must be specified in the command line each time Zotify is run. When unspecified, the configuration file will be read from and saved to the following default locations based on your operating system:
-
-| OS              | Location                                                           |
-|-----------------|--------------------------------------------------------------------|
-| Windows         | `C:\Users\<USERNAME>\AppData\Roaming\Zotify\config.json`           |
-| MacOS           | `/Users/<USERNAME>/Library/Application Support/Zotify/config.json` |
-| Linux           | `/home/<USERNAME>/.config/zotify/config.json`                      |
-
-To log out, just remove the configuration file and credentials file. Uninstalling Zotify does ***not*** remove either.
-
-## Path Option Parser
-
-All pathing-related options (`CREDENTIALS_LOCATION`, `ROOT_PODCAST_PATH`, `TEMP_DOWNLOAD_DIR`, `SONG_ARCHIVE_LOCATION`, `M3U8_LOCATION`, `LYRICS_LOCATION`) accept absolute paths.
-They will substitute an initial `"."` with `ROOT_PATH` and properly expand both `"~"` & `"~user"` constructs.
-
-The options `CREDENTIALS_LOCATION` and `SONG_ARCHIVE_LOCATION` use the following default locations depending on operating system:
-
-| OS              | Location                                                |
-|-----------------|---------------------------------------------------------|
-| Windows         | `C:\Users\<USERNAME>\AppData\Roaming\Zotify\`           |
-| MacOS           | `/Users/<USERNAME>/Library/Application Support/Zotify/` |
-| Linux           | `/home/<USERNAME>/.local/share/zotify/`                 |
-
-## Output Formatting
-
-With the option `OUTPUT` (or the commandline parameter `--output`) you can specify the pattern for the file structure of downloaded songs (not podcasts).  
-The value is relative to the `ROOT_PATH` directory and may contain the following placeholders:
-
-| Placeholder       | Description                                                  |
-|-------------------|--------------------------------------------------------------|
-| `{artist}`        | The song artist                                              |
-| `{album_artist}`  | The album artist                                             |
-| `{album}`         | The song album                                               |
-| `{song_name}`     | The song name                                                |
-| `{release_year}`  | The song release year                                        |
-| `{disc_number}`   | The disc number                                              |
-| `{track_number}`  | The track number                                             |
-| `{id}`            | The song id                                                  |
-| `{track_id}`      | The track id                                                 |
-| `{album_id}`      | (only when downloading albums) ID of the album               |
-| `{album_num}`     | (only when downloading albums) Incrementing track number     |
-| `{playlist}`      | (only when downloading playlists) Name of the playlist       |
-| `{playlist_id}`   | (only when downloading playlists) ID of the playlist         |
-| `{playlist_num}`  | (only when downloading playlists) Incrementing track number  |
-
-### Example Output Values
-
-`OUTPUT_PLAYLIST`       :   `{playlist}/{artist}_{song_name}`
-
-`OUTPUT_PLAYLIST_EXT`   :   `{playlist}/{playlist_num}_{artist}_{song_name}`
-
-`OUTPUT_LIKED_SONGS`    :   `Liked Songs/{artist}_{song_name}`
-
-`OUTPUT_SINGLE`         :   `{artist}/{album}/{artist}_{song_name}`
-
-`OUTPUT_ALBUM`          :   `{album_artist}/{album}/{album_num}_{artist}_{song_name}`
-
-## Regex Formatting
-
-With `REGEX_ENABLED` (or the commandline parameter `--regex-enabled`) and its child config options, you can specify a Regex pattern for the titles of different items (tracks, albums, playlists, etc.) to be filtered against. To understand the Regex language and build/test your own, see [regex101](https://regex101.com/). Make sure to escape any backslashes `\` used in the Regex, as a `config.json` will not accept lone backslashes. **All Regex patterns/matches are case-insensitive**.
-
-You can add multiple patterns into a single regex by chaining the "or" construction `|`, such as: `(:?<first pattern here>)|(:?<second pattern here>)|(:?<third pattern here>)`.
-
-### Example Regex Values
-
-Check for Live Performances   :   `^.*?\\(?(?:Live|Live (?:from|in|at) .*?)\\)?$`
-
-## Docker Usage
-
-### Build the docker image from the Dockerfile
-
-`docker build -t zotify .`
-
-### Create and run a container from the image
-
-`docker run --rm -p 4381:4381 -v "$PWD/Zotify Music:/root/Music/Zotify Music" -v "$PWD/Zotify Podcasts:/root/Music/Zotify Podcasts" -it zotify`
-
-## Common Questions
-
-<details><summary>
-
-### What do I do if I see "Your session has been terminated"?
-
-</summary>
-
-If you see this, don't worry! Just try logging back in. If you see the incorrect username or token error, delete your `credentials.json` and you should be able to log back in.
-
-</details>
-
-<details><summary>
-
-### What do I do if I see repeated "Failed fetching audio key!" errors?
-
-</summary>
-
-If you see this, don't worry! Recent API changes have introduced rate limits, where requests for track info or audio streams may be rejected if too many requests are sent in a short time period. This can be mitigated by enabling `DOWNLOAD_REAL_TIME` and/or setting a nonzero `BULK_WAIT_TIME`. A recommended `BULK_WAIT_TIME` of `30` seconds has been shown to significantly minimize, if not completely negate, audio key request denials (see [this analysis by HxDxRx](https://github.com/zotify-dev/zotify/issues/186#issuecomment-2608381052))
-
-</details>
-
-<details><summary>
-
-### Will my account get banned if I use this tool?
-
-</summary>
-
-Currently no user has reported their account getting banned after using Zotify.
-
-It is recommended you use Zotify with a burner account.
-Alternatively, there is a configuration option labeled `DOWNLOAD_REAL_TIME`, this limits the download speed to the duration of the song being downloaded thus appearing less suspicious.
-This option is much slower and is only recommended for premium users who wish to download songs in 320kbps without buying premium on a burner account.
 
 </details>
 
