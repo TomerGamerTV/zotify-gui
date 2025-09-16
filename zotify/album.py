@@ -31,7 +31,7 @@ def get_artist_album_ids(artist_id):
     return [album[ID] for album in simple_albums]
 
 
-def download_artist_albums(artist, pbar_stack: list | None = None):
+def download_artist_albums(progress_emitter, artist, pbar_stack: list | None = None):
     """ Downloads albums of an artist """
     album_ids = get_artist_album_ids(artist)
     
@@ -40,13 +40,15 @@ def download_artist_albums(artist, pbar_stack: list | None = None):
                         disable=not Zotify.CONFIG.get_show_artist_pbar())
     pbar_stack.append(pbar)
     
-    for album_id in pbar:
-        download_album(album_id, pbar_stack)
+    for i, album_id in enumerate(pbar):
+        download_album(progress_emitter, album_id, pbar_stack)
         pbar.set_description(get_album_info(album_id)[0])
         Printer.refresh_all_pbars(pbar_stack)
+        if progress_emitter:
+            progress_emitter.emit(i + 1, len(album_ids), int((i + 1) / len(album_ids) * 100))
 
 
-def download_album(album_id: str, pbar_stack: list | None = None, M3U8_bypass: str | None = None) -> bool:
+def download_album(progress_emitter, album_id: str, pbar_stack: list | None = None, M3U8_bypass: str | None = None) -> bool:
     """ Downloads songs from an album """
     album_name, album_artists, tracks, total_discs, compilation = get_album_info(album_id)
     char_num = max({len(str(len(tracks))), 2})
@@ -79,9 +81,12 @@ def download_album(album_id: str, pbar_stack: list | None = None, M3U8_bypass: s
         if M3U8_bypass is not None:
             extra_keys['M3U8_bypass'] = M3U8_bypass
         
-        download_track('album', track[ID], 
+        # We don't pass the emitter here, as it's for album-level progress
+        download_track(None, 'album', track[ID],
                        extra_keys,
                        pbar_stack)
         pbar.set_description(track[NAME])
         Printer.refresh_all_pbars(pbar_stack)
+        if progress_emitter:
+            progress_emitter.emit(n, len(tracks), int(n / len(tracks) * 100))
     return True

@@ -175,7 +175,7 @@ def update_track_metadata(track_id: str, track_path: Path, track_resp: dict) -> 
         Printer.traceback(e)
 
 
-def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pbar_stack: list | None = None) -> None:
+def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict | None = None, pbar_stack: list | None = None) -> None:
     """ Downloads raw song audio content stream"""
     
     # recursive header for parent album download
@@ -315,6 +315,8 @@ def download_track(mode: str, track_id: str, extra_keys: dict | None = None, pba
                             data = stream.input_stream.stream().read(Zotify.CONFIG.get_chunk_size())
                             pbar.update(file.write(data))
                             downloaded += len(data)
+                            if progress_emitter:
+                                progress_emitter.emit(downloaded, total_size, int(downloaded / total_size * 100))
                             b += 1 if data == b'' else 0
                             if Zotify.CONFIG.get_download_real_time():
                                 delta_real = time.time() - time_start

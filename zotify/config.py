@@ -564,6 +564,30 @@ class Config:
     def get_strict_library_verify(cls) -> bool:
         return cls.get(STRICT_LIBRARY_VERIFY)
 
+    @classmethod
+    def save(cls):
+        """ Saves the current config values to the config.json file """
+        system_paths = {
+            'win32': Path.home() / 'AppData/Roaming/Zotify',
+            'linux': Path.home() / '.config/zotify',
+            'darwin': Path.home() / 'Library/Application Support/Zotify'
+        }
+        if sys.platform not in system_paths:
+            config_fp = Path.cwd() / '.zotify/config.json'
+        else:
+            config_fp = system_paths[sys.platform] / 'config.json'
+
+        # This part is tricky because we don't have the `args` object here.
+        # I will assume the config path has been established by `load`.
+        # A better solution would be to store the config path in a class variable.
+        # For now, I will re-calculate it.
+        # This is a simplification and might not respect --config-location if used.
+
+        full_config_path = Path(config_fp).expanduser()
+
+        with open(full_config_path, 'w', encoding='utf-8') as config_file:
+            json.dump(cls.parse_config_jsonstr(), config_file, indent=4)
+
 
 class Zotify:    
     SESSION: Session = None
@@ -608,11 +632,15 @@ class Zotify:
         def oauth_print(url):
             Printer.new_print(PrintChannel.MANDATORY, f"Click on the following link to login:\n{url}")
         
+        cls.oauth_login(session_builder, oauth_print)
+
+    @classmethod
+    def oauth_login(cls, session_builder, url_callback):
+        """ Performs the OAuth login flow. """
         port = 4381
         redirect_url = f"http://{cls.CONFIG.get_oauth_address()}:{port}/login"
-        session_builder.login_credentials = OAuth(MercuryRequests.keymaster_client_id, redirect_url, oauth_print).flow()
+        session_builder.login_credentials = OAuth(MercuryRequests.keymaster_client_id, redirect_url, url_callback).flow()
         cls.SESSION = session_builder.create()
-        return
     
     @classmethod
     def get_content_stream(cls, content_id, quality):

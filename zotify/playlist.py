@@ -36,7 +36,7 @@ def get_playlist_info(playlist_id) -> tuple[str, str]:
     return resp['name'].strip(), resp['owner']['display_name'].strip()
 
 
-def download_playlist(playlist: dict, pbar_stack: list | None = None):
+def download_playlist(progress_emitter, playlist: dict, pbar_stack: list | None = None):
     """Downloads all the songs from a playlist"""
     playlist_num, playlist_tracks = get_playlist_songs(playlist[ID])
     
@@ -96,15 +96,17 @@ def download_playlist(playlist: dict, pbar_stack: list | None = None):
             extra_keys.update({'playlist_num': playlist_num[i],
                                'playlist_track': song[NAME],
                                'playlist_track_id': song[ID]})
-            download_track(mode, song[ID], extra_keys, pbar_stack)
+            download_track(None, mode, song[ID], extra_keys, pbar_stack)
         pbar.set_description(song[NAME])
         Printer.refresh_all_pbars(pbar_stack)
+        if progress_emitter:
+            progress_emitter.emit(i + 1, len(playlist_tracks), int((i + 1) / len(playlist_tracks) * 100))
     
     if Zotify.CONFIG.get_export_m3u8() and old_m3u8_path.exists():
         old_m3u8_path.unlink()
 
 
-def download_from_user_playlist():
+def download_from_user_playlist(progress_emitter):
     """ Select which playlist(s) to download """
     
     users_playlists = Zotify.invoke_url_nextable(USER_PLAYLISTS_URL, ITEMS)
@@ -120,6 +122,6 @@ def download_from_user_playlist():
     
     for playlist_number in pbar:
         playlist = users_playlists[int(playlist_number) - 1]
-        download_playlist(playlist, pbar_stack)
+        download_playlist(progress_emitter, playlist, pbar_stack)
         pbar.set_description(playlist[NAME].strip())
         Printer.refresh_all_pbars(pbar_stack)
