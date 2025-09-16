@@ -2,7 +2,6 @@ import sys
 import traceback
 import logging
 from PyQt5.QtCore import QObject, pyqtSignal, QRunnable
-from const import TRACKS, ARTISTS, ALBUMS, PLAYLISTS
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +12,7 @@ class WorkerSignals(QObject):
     result = pyqtSignal(object)
 
 class MusicSignals(WorkerSignals):
-    update = pyqtSignal(float,int,int)
+    update = pyqtSignal(int, int, int)
 
 class Worker(QRunnable):
     """

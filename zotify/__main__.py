@@ -91,6 +91,9 @@ def main():
                        dest='verify_library',
                        action='store_true',
                        help='Check metadata for all tracks in ROOT_PATH or listed in SONG_ARCHIVE, updating the metadata if necessary. This will not download any new tracks, but may take a very, very long time.')
+    group.add_argument('--gui',
+                       action='store_true',
+                       help='Launch the Zotify GUI')
     
     for flag in DEPRECIATED_FLAGS: 
         group.add_argument(*flag["flags"],
@@ -115,6 +118,12 @@ def main():
     parser.set_defaults(func=client)
     
     args = parser.parse_args()
+
+    if args.gui:
+        from zotify.gui import main
+        main.main()
+        return
+
     try:
         args.func(args)
     except KeyboardInterrupt:
