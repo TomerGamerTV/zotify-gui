@@ -18,7 +18,7 @@ from .main_window import Ui_MainWindow
 from .login_dialog import Ui_LoginDialog
 from .worker import Worker
 import qdarktheme
-from .view import set_button_icon, set_label_image
+from .view import set_button_icon, set_label_image, SeekableSlider
 import webbrowser
 from librespot.core import Session
 from zotify.config import Zotify
