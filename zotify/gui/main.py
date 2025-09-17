@@ -14,11 +14,11 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QTreeWidgetItem,
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QDialog
 from pathlib import Path
-from .main_window import Ui_MainWindow
-from .login_dialog import Ui_LoginDialog
-from .worker import Worker
+from main_window import Ui_MainWindow
+from login_dialog import Ui_LoginDialog
+from worker import Worker
 import qdarktheme
-from .view import set_button_icon, set_label_image, SeekableSlider
+from view import set_button_icon, set_label_image
 import webbrowser
 from librespot.core import Session
 from zotify.config import Zotify

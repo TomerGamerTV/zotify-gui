@@ -9,7 +9,6 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from .view import SeekableSlider
 
 
 class Ui_MainWindow(object):
@@ -61,9 +60,6 @@ class Ui_MainWindow(object):
         self.accountTypeLabel.setText("")
         self.accountTypeLabel.setObjectName("accountTypeLabel")
         self.horizontalLayout_2.addWidget(self.accountTypeLabel)
-        self.settingsBtn = QtWidgets.QPushButton(self.widget)
-        self.settingsBtn.setObjectName("settingsBtn")
-        self.horizontalLayout_2.addWidget(self.settingsBtn)
         self.loginBtn = QtWidgets.QPushButton(self.widget)
         self.loginBtn.setObjectName("loginBtn")
         self.horizontalLayout_2.addWidget(self.loginBtn)
@@ -647,8 +643,6 @@ class Ui_MainWindow(object):
         self.resultAmountCombo.setItemText(3, _translate("MainWindow", "40"))
         self.resultAmountCombo.setItemText(4, _translate("MainWindow", "50"))
         self.label_6.setText(_translate("MainWindow", "Results"))
-        self.settingsBtn.setText(_translate("MainWindow", "Settings"))
-        self.settingsBtn.setToolTip(_translate("MainWindow", "Open the settings dialog"))
         self.loginBtn.setText(_translate("MainWindow", "Login"))
         self.downloadedTree.setSortingEnabled(True)
         self.downloadedTree.headerItem().setText(1, _translate("MainWindow", "Artists"))
@@ -695,3 +689,4 @@ class Ui_MainWindow(object):
         self.label_2.setText(_translate("MainWindow", "Download Queue:"))
         self.downloadBtn.setText(_translate("MainWindow", "Download "))
         self.dirBtn.setToolTip(_translate("MainWindow", "Change download directory"))
+from view import SeekableSlider
