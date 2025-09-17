@@ -63,6 +63,116 @@ class Window(QMainWindow, Ui_MainWindow):
         self.likedTab.layout().addWidget(self.loadingLikedLabel)
         self.loadingLikedLabel.hide()
 
+        # Hide info view by default
+        self.infoView.hide()
+
+        # Connect item selection changes to show info view
+        self.downloadedTree.itemSelectionChanged.connect(self.on_item_selection_changed)
+        self.likedTree.itemSelectionChanged.connect(self.on_item_selection_changed)
+        self.songsTree.itemSelectionChanged.connect(self.on_item_selection_changed)
+        self.albumsTree.itemSelectionChanged.connect(self.on_item_selection_changed)
+        self.artistsTree.itemSelectionChanged.connect(self.on_item_selection_changed)
+        self.playlistsTree.itemSelectionChanged.connect(self.on_item_selection_changed)
+
+        # Liked songs cache
+        self.liked_songs_cache = None
+        self.refresh_liked_btn = QtWidgets.QPushButton("Refresh")
+        self.refresh_liked_btn.clicked.connect(self.on_refresh_liked_clicked)
+        self.likedTab.layout().addWidget(self.refresh_liked_btn)
+
+    def on_refresh_liked_clicked(self):
+        self.liked_songs_cache = None
+        self.load_liked_songs()
+
+    def get_current_tree_widget(self):
+        # Determine the currently visible tree widget
+        current_music_tab = self.musicTabs.currentWidget()
+        if current_music_tab.objectName() == 'libraryLayout':
+            current_library_tab = self.libraryTabs.currentWidget()
+            return current_library_tab.findChild(QtWidgets.QTreeWidget)
+        elif current_music_tab.objectName() == 'resultLayout':
+            current_search_tab = self.searchTabs.currentWidget()
+            return current_search_tab.findChild(QtWidgets.QTreeWidget)
+        return None
+
+    def on_item_selection_changed(self):
+        tree = self.get_current_tree_widget()
+        if tree and tree.selectedItems():
+            self.infoView.show()
+            self.update_info_panel(tree.selectedItems()[0])
+        else:
+            self.infoView.hide()
+
+    def update_info_panel(self, item):
+        data = item.data(0, QtCore.Qt.UserRole)
+        if not data:
+            return
+
+        # Clear previous info
+        for i in range(len(self.info_labels)):
+            self.info_labels[i].setText("")
+            self.info_headers[i].setText("")
+
+        item_type = data.get('type')
+
+        if item_type == 'track':
+            self.infoHeader1.setText("Title:")
+            self.infoLabel1.setText(data.get('name', 'N/A'))
+            self.infoHeader2.setText("Artists:")
+            self.infoLabel2.setText(", ".join([a['name'] for a in data.get('artists', [])]))
+            self.infoHeader3.setText("Album:")
+            self.infoLabel3.setText(data.get('album', {}).get('name', 'N/A'))
+
+            if data.get('album') and data['album'].get('images'):
+                image_url = data['album']['images'][0].get('url')
+                if image_url:
+                    worker = Worker(set_label_image, self.coverArtLabel, image_url, from_url=True)
+                    QThreadPool.globalInstance().start(worker)
+
+        elif item_type == 'album':
+            self.infoHeader1.setText("Album:")
+            self.infoLabel1.setText(data.get('name', 'N/A'))
+            self.infoHeader2.setText("Artists:")
+            self.infoLabel2.setText(", ".join([a['name'] for a in data.get('artists', [])]))
+            self.infoHeader3.setText("Release Date:")
+            self.infoLabel3.setText(data.get('release_date', 'N/A'))
+            self.infoHeader4.setText("Tracks:")
+            self.infoLabel4.setText(str(data.get('total_tracks', 'N/A')))
+
+            if data.get('images'):
+                image_url = data['images'][0].get('url')
+                if image_url:
+                    worker = Worker(set_label_image, self.coverArtLabel, image_url, from_url=True)
+                    QThreadPool.globalInstance().start(worker)
+
+        elif item_type == 'artist':
+            self.infoHeader1.setText("Artist:")
+            self.infoLabel1.setText(data.get('name', 'N/A'))
+            self.infoHeader2.setText("Followers:")
+            self.infoLabel2.setText(str(data.get('followers', {}).get('total', 'N/A')))
+            self.infoHeader3.setText("Genres:")
+            self.infoLabel3.setText(", ".join(data.get('genres', [])))
+
+            if data.get('images'):
+                image_url = data['images'][0].get('url')
+                if image_url:
+                    worker = Worker(set_label_image, self.coverArtLabel, image_url, from_url=True)
+                    QThreadPool.globalInstance().start(worker)
+
+        elif item_type == 'playlist':
+            self.infoHeader1.setText("Playlist:")
+            self.infoLabel1.setText(data.get('name', 'N/A'))
+            self.infoHeader2.setText("Owner:")
+            self.infoLabel2.setText(data.get('owner', {}).get('display_name', 'N/A'))
+            self.infoHeader3.setText("Tracks:")
+            self.infoLabel3.setText(str(data.get('tracks', {}).get('total', 'N/A')))
+
+            if data.get('images'):
+                image_url = data['images'][0].get('url')
+                if image_url:
+                    worker = Worker(set_label_image, self.coverArtLabel, image_url, from_url=True)
+                    QThreadPool.globalInstance().start(worker)
+
     def on_library_tab_changed(self, index):
         if index == 0: # Downloaded Songs Tab
             self.load_downloaded_songs()
@@ -86,17 +196,27 @@ class Window(QMainWindow, Ui_MainWindow):
 
     def load_liked_songs(self):
         self.likedTree.clear()
+
+        if self.liked_songs_cache is not None:
+            self.display_liked_songs(self.liked_songs_cache)
+            return
+
         self.likedTree.hide()
         self.loadingLikedLabel.setText("Loading, please wait...")
         self.loadingLikedLabel.show()
+        self.refresh_liked_btn.setEnabled(False)
+
         worker = Worker(api.get_liked_songs)
         worker.signals.result.connect(self.display_liked_songs)
         worker.signals.error.connect(self.display_liked_songs_error)
         QThreadPool.globalInstance().start(worker)
 
     def display_liked_songs(self, results):
+        self.liked_songs_cache = results
         self.loadingLikedLabel.hide()
         self.likedTree.show()
+        self.refresh_liked_btn.setEnabled(True)
+        self.likedTree.clear()
         for track_item in results:
             track = track_item['track']
             artists = ", ".join([artist['name'] for artist in track['artists']])
@@ -106,6 +226,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
     def display_liked_songs_error(self, error):
         self.loadingLikedLabel.setText("Error loading liked songs. Please try again later.")
+        self.refresh_liked_btn.setEnabled(True)
         print("Error loading liked songs:", error)
 
     def on_settings_clicked(self):
