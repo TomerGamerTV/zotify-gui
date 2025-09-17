@@ -14,11 +14,11 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QTreeWidgetItem,
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QDialog
 from pathlib import Path
-from main_window import Ui_MainWindow
-from login_dialog import Ui_LoginDialog
-from worker import Worker
+from .main_window import Ui_MainWindow
+from .login_dialog import Ui_LoginDialog
+from .worker import Worker
 import qdarktheme
-from view import set_button_icon, set_label_image
+from .view import set_button_icon, set_label_image
 import webbrowser
 from librespot.core import Session
 from zotify.config import Zotify
@@ -57,6 +57,12 @@ class Window(QMainWindow, Ui_MainWindow):
         self.settingsBtn.clicked.connect(self.on_settings_clicked)
         self.libraryTabs.currentChanged.connect(self.on_library_tab_changed)
 
+        # Add loading indicator for liked songs
+        self.loadingLikedLabel = QtWidgets.QLabel("Loading, please wait...")
+        self.loadingLikedLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.likedTab.layout().addWidget(self.loadingLikedLabel)
+        self.loadingLikedLabel.hide()
+
     def on_library_tab_changed(self, index):
         if index == 0: # Downloaded Songs Tab
             self.load_downloaded_songs()
@@ -80,12 +86,17 @@ class Window(QMainWindow, Ui_MainWindow):
 
     def load_liked_songs(self):
         self.likedTree.clear()
+        self.likedTree.hide()
+        self.loadingLikedLabel.setText("Loading, please wait...")
+        self.loadingLikedLabel.show()
         worker = Worker(api.get_liked_songs)
         worker.signals.result.connect(self.display_liked_songs)
-        worker.signals.error.connect(self.search_error) # Can reuse search_error for now
+        worker.signals.error.connect(self.display_liked_songs_error)
         QThreadPool.globalInstance().start(worker)
 
     def display_liked_songs(self, results):
+        self.loadingLikedLabel.hide()
+        self.likedTree.show()
         for track_item in results:
             track = track_item['track']
             artists = ", ".join([artist['name'] for artist in track['artists']])
@@ -93,9 +104,15 @@ class Window(QMainWindow, Ui_MainWindow):
             item.setData(0, QtCore.Qt.UserRole, track)
             self.likedTree.addTopLevelItem(item)
 
+    def display_liked_songs_error(self, error):
+        self.loadingLikedLabel.setText("Error loading liked songs. Please try again later.")
+        print("Error loading liked songs:", error)
+
     def on_settings_clicked(self):
         settings_dialog = SettingsDialog(self)
-        settings_dialog.exec_()
+        if settings_dialog.exec() == QDialog.Accepted:
+            # Settings were saved, reload relevant parts of the UI
+            self.load_downloaded_songs()
 
     def load_config(self):
         """ Loads the config file and sets up the Zotify config object """

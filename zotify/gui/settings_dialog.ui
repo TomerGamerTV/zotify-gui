@@ -102,11 +102,6 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="formattingTab">
-      <attribute name="title">
-       <string>Formatting</string>
-      </attribute>
-     </widget>
     </widget>
    </item>
    <item>
