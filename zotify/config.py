@@ -644,6 +644,11 @@ class Zotify:
     
     @classmethod
     def get_content_stream(cls, content_id, quality):
+        if quality == 'auto':
+            if cls.check_premium():
+                quality = 'very_high'
+            else:
+                quality = 'high'
         try:
             return cls.SESSION.content_feeder().load(content_id, VorbisOnlyAudioQuality(quality), False, None)
         except RuntimeError as e:
@@ -652,7 +657,7 @@ class Zotify:
                 Printer.hashtaged(PrintChannel.ERROR, 'FAILED TO FETCH AUDIO KEY\n' +\
                                                       'MAY BE CAUSED BY RATE LIMITS - CONSIDER INCREASING `BULK_WAIT_TIME`\n' +\
                                                      f'GID: {gid[5:]} - File_ID: {fileid[8:]}')
-            else:        
+            else:
                 raise e
     
     @classmethod
