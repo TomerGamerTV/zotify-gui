@@ -54,6 +54,32 @@
           <number>0</number>
          </property>
          <item>
+          <widget class="QPushButton" name="downloadBtn">
+           <property name="toolTip">
+            <string>Download selected item(s)</string>
+           </property>
+           <property name="text">
+            <string>Download Selected</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QProgressBar" name="progressBar">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>400</width>
+             <height>12</height>
+            </size>
+           </property>
+           <property name="value">
+            <number>0</number>
+           </property>
+          </widget>
+         </item>
+         <item>
           <spacer name="horizontalSpacer">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -225,6 +251,9 @@ QTabWidget::tab-bar
                     <property name="alternatingRowColors">
                      <bool>true</bool>
                     </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::ExtendedSelection</enum>
+                    </property>
                     <property name="sortingEnabled">
                      <bool>true</bool>
                     </property>
@@ -277,6 +306,9 @@ QTabWidget::tab-bar
                    <widget class="QTreeWidget" name="likedTree">
                     <property name="alternatingRowColors">
                      <bool>true</bool>
+                    </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::ExtendedSelection</enum>
                     </property>
                     <property name="sortingEnabled">
                      <bool>true</bool>
@@ -471,6 +503,9 @@ QTabWidget::tab-bar
                     <property name="alternatingRowColors">
                      <bool>true</bool>
                     </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::ExtendedSelection</enum>
+                    </property>
                     <property name="animated">
                      <bool>true</bool>
                     </property>
@@ -542,6 +577,9 @@ QTabWidget::tab-bar
                     <property name="alternatingRowColors">
                      <bool>true</bool>
                     </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::ExtendedSelection</enum>
+                    </property>
                     <property name="animated">
                      <bool>true</bool>
                     </property>
@@ -589,6 +627,9 @@ QTabWidget::tab-bar
                     </property>
                     <property name="alternatingRowColors">
                      <bool>true</bool>
+                    </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::ExtendedSelection</enum>
                     </property>
                     <property name="animated">
                      <bool>true</bool>
@@ -652,6 +693,9 @@ QTabWidget::tab-bar
                     </property>
                     <property name="alternatingRowColors">
                      <bool>true</bool>
+                    </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::ExtendedSelection</enum>
                     </property>
                     <property name="animated">
                      <bool>true</bool>
@@ -733,6 +777,9 @@ QTabWidget::tab-bar
                    <widget class="QTreeWidget" name="queueTree">
                     <property name="alternatingRowColors">
                      <bool>true</bool>
+                    </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::ExtendedSelection</enum>
                     </property>
                     <attribute name="headerDefaultSectionSize">
                      <number>270</number>
@@ -1114,54 +1161,6 @@ QTabWidget::tab-bar
             </spacer>
            </item>
           </layout>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="downloadLayout">
-        <property name="leftMargin">
-         <number>5</number>
-        </property>
-        <property name="rightMargin">
-         <number>5</number>
-        </property>
-        <item>
-         <widget class="QPushButton" name="downloadBtn">
-          <property name="minimumSize">
-           <size>
-            <width>120</width>
-            <height>40</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>120</width>
-            <height>40</height>
-           </size>
-          </property>
-          <property name="toolTip">
-           <string>Download the selected item</string>
-          </property>
-          <property name="text">
-           <string>Download</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QProgressBar" name="progressBar">
-          <property name="enabled">
-           <bool>true</bool>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>12</height>
-           </size>
-          </property>
-          <property name="value">
-           <number>0</number>
-          </property>
          </widget>
         </item>
        </layout>

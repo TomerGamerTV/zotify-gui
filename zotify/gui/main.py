@@ -53,9 +53,10 @@ class Window(QMainWindow, Ui_MainWindow):
         self.loginBtn.clicked.connect(self.on_click_login)
         self.searchBtn.clicked.connect(self.on_search_clicked)
         self.searchInput.returnPressed.connect(self.on_search_clicked)
-        self.downloadBtn.clicked.connect(self.on_download_clicked)
+        self.downloadBtn.clicked.connect(self.on_download_selected_clicked)
         self.settingsBtn.clicked.connect(self.on_settings_clicked)
         self.libraryTabs.currentChanged.connect(self.on_library_tab_changed)
+        self.progressBar.hide()
 
         # Add loading indicator for liked songs
         self.loadingLikedLabel = QtWidgets.QLabel("Loading, please wait...")
@@ -351,13 +352,13 @@ class Window(QMainWindow, Ui_MainWindow):
     def search_error(self, error):
         print("Search failed:", error)
 
-    def on_download_clicked(self):
+    def on_download_selected_clicked(self):
         active_tab_widget = self.musicTabs.currentWidget()
         if active_tab_widget.objectName() == 'resultLayout':
             tree_widget = self.searchTabs.currentWidget().findChild(QtWidgets.QTreeWidget)
         elif active_tab_widget.objectName() == 'libraryLayout':
             tree_widget = self.libraryTabs.currentWidget().findChild(QtWidgets.QTreeWidget)
-        else: # queue or others
+        else:  # queue or others
             return
 
         if not tree_widget:
@@ -367,25 +368,30 @@ class Window(QMainWindow, Ui_MainWindow):
         if not selected_items:
             return
 
-        item_data = selected_items[0].data(0, QtCore.Qt.UserRole)
-        if not item_data:
-            return
-
+        self.progressBar.show()
         self.progressBar.setValue(0)
 
-        # Determine type of download
-        if 'type' in item_data:
-            item_type = item_data['type']
-            if item_type == 'track':
-                worker = Worker(download_track, 'single', item_data['id'], None, [], update=self.update_progress_bar)
-                QThreadPool.globalInstance().start(worker)
-            elif item_type == 'album':
-                worker = Worker(download_album, item_data['id'], [], update=self.update_progress_bar)
-                QThreadPool.globalInstance().start(worker)
-            elif item_type == 'playlist':
-                worker = Worker(download_playlist, item_data, [], update=self.update_progress_bar)
-                QThreadPool.globalInstance().start(worker)
-            # Add artist download later
+        for item in selected_items:
+            item_data = item.data(0, QtCore.Qt.UserRole)
+            if not item_data:
+                continue
+
+            # Determine type of download
+            if 'type' in item_data:
+                item_type = item_data['type']
+                if item_type == 'track':
+                    worker = Worker(download_track, self.update_progress_bar, 'single', item_data['id'], None, [])
+                    worker.signals.finished.connect(lambda: self.progressBar.hide())
+                    QThreadPool.globalInstance().start(worker)
+                elif item_type == 'album':
+                    worker = Worker(download_album, self.update_progress_bar, item_data['id'], [])
+                    worker.signals.finished.connect(lambda: self.progressBar.hide())
+                    QThreadPool.globalInstance().start(worker)
+                elif item_type == 'playlist':
+                    worker = Worker(download_playlist, self.update_progress_bar, item_data, [])
+                    worker.signals.finished.connect(lambda: self.progressBar.hide())
+                    QThreadPool.globalInstance().start(worker)
+                # Add artist download later
 
     def update_progress_bar(self, downloaded, total, percent):
         self.progressBar.setValue(percent)
