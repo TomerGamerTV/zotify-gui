@@ -81,8 +81,7 @@ def download_album(progress_emitter, album_id: str, pbar_stack: list | None = No
         if M3U8_bypass is not None:
             extra_keys['M3U8_bypass'] = M3U8_bypass
         
-        # We don't pass the emitter here, as it's for album-level progress
-        download_track(None, 'album', track[ID],
+        download_track(progress_emitter, 'album', track[ID],
                        extra_keys,
                        pbar_stack)
         pbar.set_description(track[NAME])

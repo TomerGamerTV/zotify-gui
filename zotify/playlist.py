@@ -96,7 +96,7 @@ def download_playlist(progress_emitter, playlist: dict, pbar_stack: list | None 
             extra_keys.update({'playlist_num': playlist_num[i],
                                'playlist_track': song[NAME],
                                'playlist_track_id': song[ID]})
-            download_track(None, mode, song[ID], extra_keys, pbar_stack)
+            download_track(progress_emitter, mode, song[ID], extra_keys, pbar_stack)
         pbar.set_description(song[NAME])
         Printer.refresh_all_pbars(pbar_stack)
         if progress_emitter:
