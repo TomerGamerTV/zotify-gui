@@ -67,9 +67,6 @@ class Ui_SettingsDialog(object):
         self.skipExistingCheckBox.setObjectName("skipExistingCheckBox")
         self.formLayout_2.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.skipExistingCheckBox)
         self.tabWidget.addTab(self.downloadsTab, "")
-        self.formattingTab = QtWidgets.QWidget()
-        self.formattingTab.setObjectName("formattingTab")
-        self.tabWidget.addTab(self.formattingTab, "")
         self.verticalLayout.addWidget(self.tabWidget)
         self.buttonBox = QtWidgets.QDialogButtonBox(SettingsDialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
@@ -94,14 +91,3 @@ class Ui_SettingsDialog(object):
         self.label_4.setText(_translate("SettingsDialog", "Download in Real Time:"))
         self.label_5.setText(_translate("SettingsDialog", "Skip Existing Files:"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.downloadsTab), _translate("SettingsDialog", "Downloads"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.formattingTab), _translate("SettingsDialog", "Formatting"))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    SettingsDialog = QtWidgets.QDialog()
-    ui = Ui_SettingsDialog()
-    ui.setupUi(SettingsDialog)
-    SettingsDialog.show()
-    sys.exit(app.exec_())

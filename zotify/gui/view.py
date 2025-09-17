@@ -1,9 +1,5 @@
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import QSlider
-from PyQt5.QtCore import pyqtSignal
-
-
 def set_button_icon(btn, icon_path):
     icon = QtGui.QIcon()
     icon.addPixmap(QtGui.QPixmap(icon_path), QtGui.QIcon.Normal, QtGui.QIcon.Off)
