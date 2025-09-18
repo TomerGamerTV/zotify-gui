@@ -54,9 +54,11 @@ class Window(QMainWindow, Ui_MainWindow):
         self.searchBtn.clicked.connect(self.on_search_clicked)
         self.searchInput.returnPressed.connect(self.on_search_clicked)
         self.downloadBtn.clicked.connect(self.on_download_selected_clicked)
+        self.stopBtn.clicked.connect(self.on_stop_clicked)
         self.settingsBtn.clicked.connect(self.on_settings_clicked)
         self.libraryTabs.currentChanged.connect(self.on_library_tab_changed)
         self.progressBar.hide()
+        self.stopBtn.hide()
 
         # Add loading indicator for liked songs
         self.loadingLikedLabel = QtWidgets.QLabel("Loading, please wait...")
@@ -369,6 +371,7 @@ class Window(QMainWindow, Ui_MainWindow):
             return
 
         self.progressBar.show()
+        self.stopBtn.show()
         self.progressBar.setValue(0)
 
         self.download_queue = []
@@ -382,6 +385,7 @@ class Window(QMainWindow, Ui_MainWindow):
     def start_next_download(self):
         if not self.download_queue:
             self.progressBar.hide()
+            self.stopBtn.hide()
             return
 
         item_data = self.download_queue.pop(0)
@@ -408,6 +412,10 @@ class Window(QMainWindow, Ui_MainWindow):
         progress = int((self.completed_downloads / self.total_downloads) * 100)
         self.progressBar.setValue(progress)
         self.start_next_download()
+
+    def on_stop_clicked(self):
+        self.download_queue = []
+        # Note: This will not stop the currently active download, only prevent new ones from starting.
 
     def update_progress_bar(self, downloaded, total, percent):
         self.progressBar.setValue(percent)
