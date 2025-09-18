@@ -41,11 +41,23 @@ def get_local_songs(path):
             audio = File(file_path, easy=True)
             if audio is None:
                 continue
+
+            # Also get the full tag info to look for album art
+            full_audio = File(file_path)
+            artwork = None
+            if full_audio:
+                if 'APIC:' in full_audio:
+                    artwork = full_audio['APIC:'].data
+                elif 'covr' in full_audio:  # for mp4/m4a
+                    artwork = full_audio['covr'][0]
+
             song_info = {
+                'type': 'local_track',  # Add type
                 'name': audio.get('title', [str(file_path.name)])[0],
-                'artists': audio.get('artist', ['Unknown Artist']),
-                'album': audio.get('album', ['Unknown Album'])[0],
-                'path': str(file_path)
+                'artists': audio.get('artist', ['Unknown Artist']),  # Keep as list of strings
+                'album': audio.get('album', ['Unknown Album'])[0],  # Keep as string
+                'path': str(file_path),
+                'image_data': artwork  # Add image data
             }
             songs.append(song_info)
         except Exception as e:
