@@ -289,7 +289,7 @@ def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict 
                     if track_id != track_metadata[ID]:
                         track_id = track_metadata[ID]
                     track = TrackId.from_base62(track_id)
-                    stream = Zotify.get_content_stream(track, Zotify.DOWNLOAD_QUALITY)
+                    stream = Zotify.get_content_stream(track, Zotify.CONFIG.get_download_quality())
                     if stream is None:
                         Printer.hashtaged(PrintChannel.ERROR, 'SKIPPING SONG - FAILED TO GET CONTENT STREAM\n' +\
                                                              f'Track_ID: {track_id}')
