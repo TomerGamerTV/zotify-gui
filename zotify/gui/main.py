@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import QDialog
 from pathlib import Path
 from .main_window import Ui_MainWindow
 from .login_dialog import Ui_LoginDialog
-from .worker import Worker
+from .worker import Worker, MusicSignals
 import qdarktheme
 from .view import set_button_icon, set_label_image
 import webbrowser
@@ -131,6 +131,24 @@ class Window(QMainWindow, Ui_MainWindow):
                 if image_url:
                     worker = Worker(set_label_image, self.coverArtLabel, image_url, from_url=True)
                     QThreadPool.globalInstance().start(worker)
+
+        elif item_type == 'local_track':
+            self.infoHeader1.setText("Title:")
+            self.infoLabel1.setText(data.get('name', 'N/A'))
+            self.infoHeader2.setText("Artists:")
+            self.infoLabel2.setText(", ".join(data.get('artists', [])))
+            self.infoHeader3.setText("Album:")
+            self.infoLabel3.setText(data.get('album', 'N/A'))
+            self.infoHeader4.setText("Path:")
+            self.infoLabel4.setText(data.get('path', 'N/A'))
+
+            image_data = data.get('image_data')
+            if image_data:
+                pixmap = QPixmap()
+                pixmap.loadFromData(image_data)
+                self.coverArtLabel.setPixmap(pixmap.scaled(self.coverArtLabel.size(), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+            else:
+                set_label_image(self.coverArtLabel, "Resources/cover_default.jpg")
 
         elif item_type == 'album':
             self.infoHeader1.setText("Album:")
@@ -395,15 +413,15 @@ class Window(QMainWindow, Ui_MainWindow):
 
         item_type = item_data.get('type')
         if item_type == 'track':
-            worker = Worker(download_track, 'single', item_data['id'], None, [], update=self.update_progress_bar)
+            worker = Worker(download_track, 'single', item_data['id'], None, [], update=self.update_progress_bar, signals=MusicSignals())
             worker.signals.finished.connect(self.on_download_finished)
             QThreadPool.globalInstance().start(worker)
         elif item_type == 'album':
-            worker = Worker(download_album, item_data['id'], [], update=self.update_progress_bar)
+            worker = Worker(download_album, item_data['id'], [], update=self.update_progress_bar, signals=MusicSignals())
             worker.signals.finished.connect(self.on_download_finished)
             QThreadPool.globalInstance().start(worker)
         elif item_type == 'playlist':
-            worker = Worker(download_playlist, item_data, [], update=self.update_progress_bar)
+            worker = Worker(download_playlist, item_data, [], update=self.update_progress_bar, signals=MusicSignals())
             worker.signals.finished.connect(self.on_download_finished)
             QThreadPool.globalInstance().start(worker)
 
