@@ -58,6 +58,31 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.addWidget(self.bannerLabel)
         self.verticalLayout.addWidget(self.widget)
 
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.verticalLayout_3 = QtWidgets.QVBoxLayout()
+        self.verticalLayout_3.setContentsMargins(-1, 0, -1, 0)
+        self.verticalLayout_3.setSpacing(2)
+        self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.musicTabs = QtWidgets.QTabWidget(self.centralwidget)
+        self.musicTabs.setStyleSheet("QTabWidget::pane\n"
+"{\n"
+"    border:0px;\n"
+"}\n"
+"\n"
+"QTabWidget::tab-bar\n"
+"{\n"
+"    alignment: center;\n"
+"}")
+        self.musicTabs.setTabPosition(QtWidgets.QTabWidget.West)
+        self.musicTabs.setTabBarAutoHide(True)
+        self.musicTabs.setObjectName("musicTabs")
+        self.libraryLayout = QtWidgets.QWidget()
+        self.libraryLayout.setObjectName("libraryLayout")
+        self.verticalLayout_10 = QtWidgets.QVBoxLayout(self.libraryLayout)
+        self.verticalLayout_10.setContentsMargins(3, 0, 3, 3)
+        self.verticalLayout_10.setObjectName("verticalLayout_10")
+
         self.downloadLayout = QtWidgets.QHBoxLayout()
         self.downloadLayout.setContentsMargins(5, 5, 5, 5)
         self.downloadLayout.setObjectName("downloadLayout")
@@ -84,33 +109,8 @@ class Ui_MainWindow(object):
         self.downloadLayout.addWidget(self.progressBar)
 
         self.downloadLayout.addStretch()
+        self.verticalLayout_10.addLayout(self.downloadLayout)
 
-        self.verticalLayout.addLayout(self.downloadLayout)
-
-        self.horizontalLayout = QtWidgets.QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_3.setContentsMargins(-1, 0, -1, 0)
-        self.verticalLayout_3.setSpacing(2)
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.musicTabs = QtWidgets.QTabWidget(self.centralwidget)
-        self.musicTabs.setStyleSheet("QTabWidget::pane\n"
-"{\n"
-"    border:0px;\n"
-"}\n"
-"\n"
-"QTabWidget::tab-bar\n"
-"{\n"
-"    alignment: center;\n"
-"}")
-        self.musicTabs.setTabPosition(QtWidgets.QTabWidget.West)
-        self.musicTabs.setTabBarAutoHide(True)
-        self.musicTabs.setObjectName("musicTabs")
-        self.libraryLayout = QtWidgets.QWidget()
-        self.libraryLayout.setObjectName("libraryLayout")
-        self.verticalLayout_10 = QtWidgets.QVBoxLayout(self.libraryLayout)
-        self.verticalLayout_10.setContentsMargins(3, 0, 3, 3)
-        self.verticalLayout_10.setObjectName("verticalLayout_10")
         self.libraryTabs = QtWidgets.QTabWidget(self.libraryLayout)
         self.libraryTabs.setStyleSheet("QTabWidget::tab-bar\n"
 "{\n"
