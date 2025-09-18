@@ -248,9 +248,9 @@ class Printer:
     @staticmethod
     def pbar_position_handler(default_pos: int, pbar_stack: list[tqdm] | None) -> tuple[int, list[tqdm]]:
         pos = default_pos
-        if pbar_stack is not None:
+        if pbar_stack:
             pos = -pbar_stack[-1].pos + (0 if pbar_stack[-1].disable else -2)
-        else:
+        elif pbar_stack is None:
             # next bar must be appended to this empty list
             pbar_stack = []
         
