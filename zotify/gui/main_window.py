@@ -61,17 +61,26 @@ class Ui_MainWindow(object):
         self.downloadLayout = QtWidgets.QHBoxLayout()
         self.downloadLayout.setContentsMargins(5, 5, 5, 5)
         self.downloadLayout.setObjectName("downloadLayout")
+
+        spacerItem_dl = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.downloadLayout.addItem(spacerItem_dl)
+
         self.downloadBtn = QtWidgets.QPushButton(self.centralwidget)
         self.downloadBtn.setMinimumSize(QtCore.QSize(120, 40))
         self.downloadBtn.setMaximumSize(QtCore.QSize(120, 40))
         self.downloadBtn.setObjectName("downloadBtn")
         self.downloadLayout.addWidget(self.downloadBtn)
+
         self.progressBar = QtWidgets.QProgressBar(self.centralwidget)
         self.progressBar.setEnabled(True)
-        self.progressBar.setMaximumSize(QtCore.QSize(16777215, 12))
+        self.progressBar.setMaximumSize(QtCore.QSize(400, 12))
         self.progressBar.setProperty("value", 0)
         self.progressBar.setObjectName("progressBar")
         self.downloadLayout.addWidget(self.progressBar)
+
+        spacerItem_dl2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.downloadLayout.addItem(spacerItem_dl2)
+
         self.verticalLayout.addLayout(self.downloadLayout)
 
         self.horizontalLayout = QtWidgets.QHBoxLayout()

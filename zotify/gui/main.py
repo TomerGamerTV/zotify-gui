@@ -371,27 +371,43 @@ class Window(QMainWindow, Ui_MainWindow):
         self.progressBar.show()
         self.progressBar.setValue(0)
 
+        self.download_queue = []
         for item in selected_items:
-            item_data = item.data(0, QtCore.Qt.UserRole)
-            if not item_data:
-                continue
+            self.download_queue.append(item.data(0, QtCore.Qt.UserRole))
 
-            # Determine type of download
-            if 'type' in item_data:
-                item_type = item_data['type']
-                if item_type == 'track':
-                    worker = Worker(download_track, self.update_progress_bar, 'single', item_data['id'], None, [])
-                    worker.signals.finished.connect(lambda: self.progressBar.hide())
-                    QThreadPool.globalInstance().start(worker)
-                elif item_type == 'album':
-                    worker = Worker(download_album, self.update_progress_bar, item_data['id'], [])
-                    worker.signals.finished.connect(lambda: self.progressBar.hide())
-                    QThreadPool.globalInstance().start(worker)
-                elif item_type == 'playlist':
-                    worker = Worker(download_playlist, self.update_progress_bar, item_data, [])
-                    worker.signals.finished.connect(lambda: self.progressBar.hide())
-                    QThreadPool.globalInstance().start(worker)
-                # Add artist download later
+        self.total_downloads = len(self.download_queue)
+        self.completed_downloads = 0
+        self.start_next_download()
+
+    def start_next_download(self):
+        if not self.download_queue:
+            self.progressBar.hide()
+            return
+
+        item_data = self.download_queue.pop(0)
+        if not item_data:
+            self.start_next_download()
+            return
+
+        item_type = item_data.get('type')
+        if item_type == 'track':
+            worker = Worker(download_track, 'single', item_data['id'], None, [], update=self.update_progress_bar)
+            worker.signals.finished.connect(self.on_download_finished)
+            QThreadPool.globalInstance().start(worker)
+        elif item_type == 'album':
+            worker = Worker(download_album, item_data['id'], [], update=self.update_progress_bar)
+            worker.signals.finished.connect(self.on_download_finished)
+            QThreadPool.globalInstance().start(worker)
+        elif item_type == 'playlist':
+            worker = Worker(download_playlist, item_data, [], update=self.update_progress_bar)
+            worker.signals.finished.connect(self.on_download_finished)
+            QThreadPool.globalInstance().start(worker)
+
+    def on_download_finished(self):
+        self.completed_downloads += 1
+        progress = int((self.completed_downloads / self.total_downloads) * 100)
+        self.progressBar.setValue(progress)
+        self.start_next_download()
 
     def update_progress_bar(self, downloaded, total, percent):
         self.progressBar.setValue(percent)
