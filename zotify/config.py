@@ -6,6 +6,7 @@ import sys
 import re
 import requests
 from librespot.audio.decoders import VorbisOnlyAudioQuality
+from librespot.metadata import AudioQuality
 from librespot.core import Session, OAuth
 from librespot.mercury import MercuryRequests
 from librespot.proto.Authentication_pb2 import AuthenticationType
@@ -649,8 +650,16 @@ class Zotify:
                 quality = 'very_high'
             else:
                 quality = 'high'
+
+        quality_map = {
+            'normal': AudioQuality.NORMAL,
+            'high': AudioQuality.HIGH,
+            'very_high': AudioQuality.VERY_HIGH,
+        }
+        audio_quality = quality_map.get(quality, AudioQuality.NORMAL)
+
         try:
-            return cls.SESSION.content_feeder().load(content_id, VorbisOnlyAudioQuality(quality), False, None)
+            return cls.SESSION.content_feeder().load(content_id, VorbisOnlyAudioQuality(audio_quality), False, None)
         except RuntimeError as e:
             if 'Failed fetching audio key!' in e.args[0]:
                 gid, fileid = e.args[0].split('! ')[1].split(', ')

@@ -62,14 +62,19 @@ class Ui_MainWindow(object):
         self.downloadLayout.setContentsMargins(5, 5, 5, 5)
         self.downloadLayout.setObjectName("downloadLayout")
 
-        spacerItem_dl = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.downloadLayout.addItem(spacerItem_dl)
+        self.downloadLayout.addStretch()
 
         self.downloadBtn = QtWidgets.QPushButton(self.centralwidget)
         self.downloadBtn.setMinimumSize(QtCore.QSize(120, 40))
         self.downloadBtn.setMaximumSize(QtCore.QSize(120, 40))
         self.downloadBtn.setObjectName("downloadBtn")
         self.downloadLayout.addWidget(self.downloadBtn)
+
+        self.stopBtn = QtWidgets.QPushButton(self.centralwidget)
+        self.stopBtn.setMinimumSize(QtCore.QSize(120, 40))
+        self.stopBtn.setMaximumSize(QtCore.QSize(120, 40))
+        self.stopBtn.setObjectName("stopBtn")
+        self.downloadLayout.addWidget(self.stopBtn)
 
         self.progressBar = QtWidgets.QProgressBar(self.centralwidget)
         self.progressBar.setEnabled(True)
@@ -78,8 +83,7 @@ class Ui_MainWindow(object):
         self.progressBar.setObjectName("progressBar")
         self.downloadLayout.addWidget(self.progressBar)
 
-        spacerItem_dl2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.downloadLayout.addItem(spacerItem_dl2)
+        self.downloadLayout.addStretch()
 
         self.verticalLayout.addLayout(self.downloadLayout)
 
@@ -427,6 +431,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "ZSpotify"))
         self.downloadBtn.setToolTip(_translate("MainWindow", "Download selected item(s)"))
         self.downloadBtn.setText(_translate("MainWindow", "Download Selected"))
+        self.stopBtn.setText(_translate("MainWindow", "Stop"))
         self.settingsBtn.setToolTip(_translate("MainWindow", "Open the settings dialog"))
         self.settingsBtn.setText(_translate("MainWindow", "Settings"))
         self.loginBtn.setToolTip(_translate("MainWindow", "Login to your Spotify account or logout"))
