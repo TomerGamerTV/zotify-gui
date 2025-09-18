@@ -5,8 +5,7 @@ import base64
 import sys
 import re
 import requests
-from librespot.audio.decoders import VorbisOnlyAudioQuality
-from librespot.metadata import AudioQuality
+from librespot.audio.decoders import VorbisOnlyAudioQuality, AudioQuality
 from librespot.core import Session, OAuth
 from librespot.mercury import MercuryRequests
 from librespot.proto.Authentication_pb2 import AuthenticationType
