@@ -33,13 +33,14 @@ def get_local_songs(path):
     Scans a directory for local music files and reads their metadata.
     """
     from zotify.utils import walk_directory_for_tracks
-    from mutagen.easyid3 import EasyID3
-    from mutagen.mp3 import MP3
+    from mutagen import File
 
     songs = []
     for file_path in walk_directory_for_tracks(path):
         try:
-            audio = MP3(file_path, ID3=EasyID3)
+            audio = File(file_path, easy=True)
+            if audio is None:
+                continue
             song_info = {
                 'name': audio.get('title', [str(file_path.name)])[0],
                 'artists': audio.get('artist', ['Unknown Artist']),

@@ -317,7 +317,7 @@ def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict 
                             pbar.update(file.write(data))
                             downloaded += len(data)
                             if progress_emitter:
-                                progress_emitter.emit(downloaded, total_size, int(downloaded / total_size * 100))
+                                progress_emitter(downloaded, total_size, int(downloaded / total_size * 100))
                             b += 1 if data == b'' else 0
                             if Zotify.CONFIG.get_download_real_time():
                                 delta_real = time.time() - time_start
