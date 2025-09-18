@@ -49,6 +49,7 @@ def parse_track_metadata(track_resp: dict) -> dict[str, list[str] | str | int | 
 
 def get_track_metadata(track_id) -> dict[str, list[str] | str | int | bool]:
     """ Retrieves metadata for downloaded songs """
+    wait_between_downloads()
     with Loader(PrintChannel.PROGRESS_INFO, "Fetching track information..."):
         (raw, info) = Zotify.invoke_url(f'{TRACK_URL}?ids={track_id}&market=from_token')
         
