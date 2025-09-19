@@ -39,16 +39,17 @@ class Worker(QRunnable):
             logger.info(f"THREAD: Starting worker thread:")
             logger.info(f"THREAD: Running function: {self.fn.__name__}")
             logger.info(f"THREAD: With args - \n {arg_str} and kwargs - {kwarg_str}")
-            if "update" in self.kwargs.keys():
-                kwargs = self.kwargs.copy()
-                kwargs.pop("update")
-                result = self.fn(
-                    self.signals.update.emit, *self.args, **kwargs
-                )
-            else:
-                result = self.fn(
-                    *self.args, **self.kwargs
-                )
+
+            local_kwargs = self.kwargs.copy()
+            update_callback = local_kwargs.pop("update", None)
+            local_kwargs.pop("signals", None)
+
+            args = list(self.args)
+            if update_callback:
+                args.insert(0, self.signals.update.emit)
+
+            result = self.fn(*args, **local_kwargs)
+
         except:
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
