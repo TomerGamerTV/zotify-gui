@@ -14,6 +14,7 @@ from time import sleep
 from typing import Any, Callable
 
 from zotify.const import *
+from zotify.const import AudioKeyError
 from zotify.termoutput import Printer, PrintChannel, Loader
 
 
@@ -595,9 +596,13 @@ class Zotify:
     TOTAL_API_CALLS = 0
     DATETIME_LAUNCH = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     CONFIG: Config = Config()
+    USER_CONFIGURED_BULK_WAIT_TIME = None
+    IS_RATE_LIMITED = False
+    SUCCESSFUL_DOWNLOADS_SINCE_RATE_LIMIT = 0
     
     def __init__(self, args):
         Zotify.CONFIG.load(args)
+        Zotify.USER_CONFIGURED_BULK_WAIT_TIME = Zotify.CONFIG.get(BULK_WAIT_TIME)
         with Loader(PrintChannel.MANDATORY, "Logging in..."):
             Zotify.login(args)
         Printer.debug("Session Initialized Successfully")
@@ -662,9 +667,7 @@ class Zotify:
         except RuntimeError as e:
             if 'Failed fetching audio key!' in e.args[0]:
                 gid, fileid = e.args[0].split('! ')[1].split(', ')
-                Printer.hashtaged(PrintChannel.ERROR, 'FAILED TO FETCH AUDIO KEY\n' +\
-                                                      'MAY BE CAUSED BY RATE LIMITS - CONSIDER INCREASING `BULK_WAIT_TIME`\n' +\
-                                                     f'GID: {gid[5:]} - File_ID: {fileid[8:]}')
+                raise AudioKeyError(f'Failed to fetch audio key for GID: {gid[5:]} - File_ID: {fileid[8:]}')
             else:
                 raise e
     
