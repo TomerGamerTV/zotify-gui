@@ -10,7 +10,7 @@ from zotify.config import Zotify
 from zotify.const import TRACKS, ALBUM, GENRES, NAME, DISC_NUMBER, TRACK_NUMBER, TOTAL_TRACKS, \
     IS_PLAYABLE, ARTISTS, ARTIST_IDS, IMAGES, URL, RELEASE_DATE, ID, TRACK_URL, \
     CODEC_MAP, DURATION_MS, WIDTH, COMPILATION, ALBUM_TYPE, ARTIST_BULK_URL, YEAR, \
-    ALBUM_ARTISTS, IMAGE_URL, EXPORT_M3U8
+    ALBUM_ARTISTS, IMAGE_URL, EXPORT_M3U8, AudioKeyError, BULK_WAIT_TIME
 from zotify.termoutput import Printer, PrintChannel, Loader
 from zotify.utils import fill_output_template, set_audio_tags, set_music_thumbnail, create_download_directory, \
     add_to_m3u8, fetch_m3u8_songs, get_directory_song_ids, add_to_directory_song_archive, \
@@ -302,6 +302,13 @@ def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict 
                         except Empty:
                             Printer.hashtaged(PrintChannel.WARNING, f"Failed to get content stream (attempt {i + 1}/{attempts}). Retrying...")
                             time.sleep(2)  # Wait 2 seconds before retrying
+                        except AudioKeyError as e:
+                            Printer.hashtaged(PrintChannel.WARNING, f"Audio key error (attempt {i + 1}/{attempts}). Retrying...")
+                            Zotify.IS_RATE_LIMITED = True
+                            Zotify.CONFIG.Values[BULK_WAIT_TIME] += 1
+                            Zotify.SUCCESSFUL_DOWNLOADS_SINCE_RATE_LIMIT = 0
+                            Printer.hashtaged(PrintChannel.WARNING, f"Increased BULK_WAIT_TIME to {Zotify.CONFIG.get(BULK_WAIT_TIME)} seconds.")
+                            time.sleep(Zotify.CONFIG.get(BULK_WAIT_TIME))
                         except Exception as e:
                             Printer.hashtaged(PrintChannel.ERROR, 'SKIPPING SONG - FAILED TO GET CONTENT STREAM\n' + f'Track_ID: {track_id}')
                             Printer.traceback(e)
@@ -372,6 +379,14 @@ def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict 
                     if not in_dir_songids:
                         add_to_directory_song_archive(track_path, track_metadata[ID], track_metadata[ARTISTS][0], track_name)
                     
+                    if Zotify.IS_RATE_LIMITED:
+                        Zotify.SUCCESSFUL_DOWNLOADS_SINCE_RATE_LIMIT += 1
+                        if Zotify.SUCCESSFUL_DOWNLOADS_SINCE_RATE_LIMIT >= 3:
+                            Printer.hashtaged(PrintChannel.INFO, "Three successful downloads, resetting BULK_WAIT_TIME.")
+                            Zotify.CONFIG.Values[BULK_WAIT_TIME] = Zotify.USER_CONFIGURED_BULK_WAIT_TIME
+                            Zotify.IS_RATE_LIMITED = False
+                            Zotify.SUCCESSFUL_DOWNLOADS_SINCE_RATE_LIMIT = 0
+
                     wait_between_downloads()
             
         except Exception as e:
