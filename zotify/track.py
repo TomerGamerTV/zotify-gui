@@ -1,6 +1,7 @@
 import time
 import uuid
 import ffmpy
+from queue import Empty
 from pathlib import Path, PurePath
 from librespot.metadata import TrackId
 
@@ -290,11 +291,26 @@ def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict 
                     if track_id != track_metadata[ID]:
                         track_id = track_metadata[ID]
                     track = TrackId.from_base62(track_id)
-                    stream = Zotify.get_content_stream(track, Zotify.CONFIG.get_download_quality())
+
+                    stream = None
+                    attempts = 3
+                    for i in range(attempts):
+                        try:
+                            stream = Zotify.get_content_stream(track, Zotify.CONFIG.get_download_quality())
+                            if stream is not None:
+                                break  # Success
+                        except Empty:
+                            Printer.hashtaged(PrintChannel.WARNING, f"Failed to get content stream (attempt {i + 1}/{attempts}). Retrying...")
+                            time.sleep(2)  # Wait 2 seconds before retrying
+                        except Exception as e:
+                            Printer.hashtaged(PrintChannel.ERROR, 'SKIPPING SONG - FAILED TO GET CONTENT STREAM\n' + f'Track_ID: {track_id}')
+                            Printer.traceback(e)
+                            return
+
                     if stream is None:
-                        Printer.hashtaged(PrintChannel.ERROR, 'SKIPPING SONG - FAILED TO GET CONTENT STREAM\n' +\
-                                                             f'Track_ID: {track_id}')
+                        Printer.hashtaged(PrintChannel.ERROR, 'SKIPPING SONG - FAILED TO GET CONTENT STREAM AFTER MULTIPLE ATTEMPTS\n' + f'Track_ID: {track_id}')
                         return
+
                     create_download_directory(filedir)
                     total_size = stream.input_stream.size
                     
