@@ -602,7 +602,8 @@ class Zotify:
     
     def __init__(self, args):
         Zotify.CONFIG.load(args)
-        Zotify.USER_CONFIGURED_BULK_WAIT_TIME = Zotify.CONFIG.get(BULK_WAIT_TIME)
+        wait_time = Zotify.CONFIG.get(BULK_WAIT_TIME)
+        Zotify.USER_CONFIGURED_BULK_WAIT_TIME = wait_time if wait_time is not None else 1
         with Loader(PrintChannel.MANDATORY, "Logging in..."):
             Zotify.login(args)
         Printer.debug("Session Initialized Successfully")
