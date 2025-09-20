@@ -454,7 +454,7 @@ def add_to_directory_song_archive(track_path: PurePath, track_id: str, author_na
     if Zotify.CONFIG.get_disable_directory_archives():
         return
     
-    abs_path = str(track_path.parent.resolve())
+    abs_path = str(Path(track_path.parent).resolve())
     if abs_path in directory_song_ids_cache:
         directory_song_ids_cache[abs_path].add(track_id)
 
