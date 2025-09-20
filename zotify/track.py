@@ -16,7 +16,7 @@ MAX_WAIT_TIME = 60
 from zotify.termoutput import Printer, PrintChannel, Loader
 from zotify.utils import fill_output_template, set_audio_tags, set_music_thumbnail, create_download_directory, \
     add_to_m3u8, fetch_m3u8_songs, get_directory_song_ids, add_to_directory_song_archive, \
-    get_archived_song_ids, add_to_song_archive, fmt_duration, wait_between_downloads, conv_artist_format, \
+    get_archived_tracks_info, add_to_song_archive, fmt_duration, wait_between_downloads, conv_artist_format, \
     conv_genre_format, compare_audio_tags, fix_filename
 
 
@@ -181,6 +181,14 @@ def update_track_metadata(track_id: str, track_path: Path, track_resp: dict) -> 
 
 def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict | None = None, pbar_stack: list | None = None) -> None:
     """ Downloads raw song audio content stream"""
+
+    if Zotify.CONFIG.get_skip_previously_downloaded():
+        archived_tracks = get_archived_tracks_info()
+        if track_id in archived_tracks:
+            track_info = archived_tracks[track_id]
+            track_label = f"{track_info['artist']} - {track_info['name']}"
+            Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_label}" (TRACK ALREADY DOWNLOADED ONCE)')
+            return
     
     # recursive header for parent album download
     child_request_mode = mode
@@ -240,11 +248,9 @@ def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict 
             
             track_path_exists = Path(track_path).is_file() and Path(track_path).stat().st_size
             in_dir_songids = track_metadata[ID] in get_directory_song_ids(filedir)
-            in_global_songids = track_metadata[ID] in get_archived_song_ids()
             Printer.debug("Duplicate Check\n" +\
                          f"File Already Exists: {track_path_exists}\n" +\
-                         f"song_id in Local Archive: {in_dir_songids}\n" +\
-                         f"song_id in Global Archive: {in_global_songids}")
+                         f"song_id in Local Archive: {in_dir_songids}")
             
             # same track_path, not same song_id, rename the newcomer
             if track_path_exists and not in_dir_songids and not Zotify.CONFIG.get_disable_directory_archives():
@@ -285,9 +291,6 @@ def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict 
                 
                 elif in_dir_songids and Zotify.CONFIG.get_skip_existing() and not Zotify.CONFIG.get_disable_directory_archives():
                     Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_label}" (TRACK ALREADY EXISTS)')
-                
-                elif in_global_songids and Zotify.CONFIG.get_skip_previously_downloaded():
-                    Printer.hashtaged(PrintChannel.SKIPPING, f'"{track_label}" (TRACK ALREADY DOWNLOADED ONCE)')
                 
                 else:
                     if track_id != track_metadata[ID]:
@@ -377,8 +380,7 @@ def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict 
                     Printer.hashtaged(PrintChannel.DOWNLOADS, f'DOWNLOADED: "{PurePath(track_path).relative_to(Zotify.CONFIG.get_root_path())}"\n' +\
                                                               f'DOWNLOAD TOOK {time_elapsed_dl} (PLUS {time_elapsed_ffmpeg} CONVERTING)')
                     
-                    if not in_global_songids:
-                        add_to_song_archive(track_metadata[ID], PurePath(track_path).name, track_metadata[ARTISTS][0], track_name)
+                    add_to_song_archive(track_metadata[ID], PurePath(track_path).name, track_metadata[ARTISTS][0], track_name)
                     if not in_dir_songids:
                         add_to_directory_song_archive(track_path, track_metadata[ID], track_metadata[ARTISTS][0], track_name)
                     

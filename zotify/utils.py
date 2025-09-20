@@ -392,31 +392,43 @@ def get_archived_entries() -> list[str]:
 
 # Caches for song IDs to prevent repeated file reads
 directory_song_ids_cache = {}
-archived_song_ids_cache = None
+archived_tracks_info_cache = None
 
 
-def get_archived_song_ids() -> set[str]:
-    """ Returns set of all-time downloaded track_ids """
-    global archived_song_ids_cache
+def get_archived_tracks_info() -> dict[str, dict]:
+    """ Returns a dictionary of all-time downloaded track info, mapping track_id to {artist, name} """
+    global archived_tracks_info_cache
 
-    if archived_song_ids_cache is not None:
-        return archived_song_ids_cache
+    if archived_tracks_info_cache is not None:
+        return archived_tracks_info_cache
 
     entries = get_archived_entries()
-    track_ids = {entry.strip().split('\t')[0] for entry in entries if entry.strip()}
-    archived_song_ids_cache = track_ids
-    return track_ids
+
+    tracks_info = {}
+    for entry in entries:
+        if not entry.strip():
+            continue
+        parts = entry.strip().split('\t')
+        if len(parts) >= 4:
+            track_id = parts[0]
+            author_name = parts[2]
+            track_name = parts[3]
+            tracks_info[track_id] = {'artist': author_name, 'name': track_name}
+
+    archived_tracks_info_cache = tracks_info
+    return tracks_info
 
 
 def add_to_song_archive(track_id: str, filename: str, author_name: str, track_name: str) -> None:
     """ Adds song id to all time installed songs archive """
-    global archived_song_ids_cache
+    global archived_tracks_info_cache
 
     if Zotify.CONFIG.get_disable_song_archive():
         return
     
-    if archived_song_ids_cache is not None:
-        archived_song_ids_cache.add(track_id)
+    # Update cache if it's populated
+    if archived_tracks_info_cache is not None:
+        archived_tracks_info_cache[track_id] = {'artist': author_name, 'name': track_name}
 
     archive_path = Zotify.CONFIG.get_song_archive_location()
     if Path(archive_path).exists():
