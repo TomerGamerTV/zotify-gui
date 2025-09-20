@@ -305,7 +305,8 @@ def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict 
                         except AudioKeyError as e:
                             Printer.hashtaged(PrintChannel.WARNING, f"Audio key error (attempt {i + 1}/{attempts}). Retrying...")
                             Zotify.IS_RATE_LIMITED = True
-                            Zotify.CONFIG.Values[BULK_WAIT_TIME] += 1
+                            current_wait_time = Zotify.CONFIG.get(BULK_WAIT_TIME) or 1
+                            Zotify.CONFIG.Values[BULK_WAIT_TIME] = current_wait_time + 1
                             Zotify.SUCCESSFUL_DOWNLOADS_SINCE_RATE_LIMIT = 0
                             Printer.hashtaged(PrintChannel.WARNING, f"Increased BULK_WAIT_TIME to {Zotify.CONFIG.get(BULK_WAIT_TIME)} seconds.")
                             time.sleep(Zotify.CONFIG.get(BULK_WAIT_TIME))
