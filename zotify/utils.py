@@ -390,22 +390,34 @@ def get_archived_entries() -> list[str]:
     return entries
 
 
-def get_archived_song_ids() -> list[str]:
-    """ Returns list of all-time downloaded track_ids """
-    
+# Caches for song IDs to prevent repeated file reads
+directory_song_ids_cache = {}
+archived_song_ids_cache = None
+
+
+def get_archived_song_ids() -> set[str]:
+    """ Returns set of all-time downloaded track_ids """
+    global archived_song_ids_cache
+
+    if archived_song_ids_cache is not None:
+        return archived_song_ids_cache
+
     entries = get_archived_entries()
-    
-    track_ids = [entry.strip().split('\t')[0] for entry in entries]
-    
+    track_ids = {entry.strip().split('\t')[0] for entry in entries if entry.strip()}
+    archived_song_ids_cache = track_ids
     return track_ids
 
 
 def add_to_song_archive(track_id: str, filename: str, author_name: str, track_name: str) -> None:
     """ Adds song id to all time installed songs archive """
-    
+    global archived_song_ids_cache
+
     if Zotify.CONFIG.get_disable_song_archive():
         return
     
+    if archived_song_ids_cache is not None:
+        archived_song_ids_cache.add(track_id)
+
     archive_path = Zotify.CONFIG.get_song_archive_location()
     if Path(archive_path).exists():
         with open(archive_path, 'a', encoding='utf-8') as file:
@@ -415,26 +427,37 @@ def add_to_song_archive(track_id: str, filename: str, author_name: str, track_na
             file.write(f'{track_id}\t{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\t{author_name}\t{track_name}\t{filename}\n')
 
 
-def get_directory_song_ids(download_path: str) -> list[str]:
+def get_directory_song_ids(download_path: str) -> set[str]:
     """ Gets song ids of songs in directory """
-    
-    track_ids = []
-    
+    global directory_song_ids_cache
+
+    abs_path = str(Path(download_path).resolve())
+
+    if abs_path in directory_song_ids_cache:
+        return directory_song_ids_cache[abs_path]
+
+    track_ids = set()
     hidden_file_path = PurePath(download_path).joinpath('.song_ids')
-    
+
     if Path(hidden_file_path).is_file() and not Zotify.CONFIG.get_disable_directory_archives():
         with open(hidden_file_path, 'r', encoding='utf-8') as file:
-            track_ids.extend([line.strip().split('\t')[0] for line in file.readlines()])
+            track_ids.update([line.strip().split('\t')[0] for line in file.readlines() if line.strip()])
     
+    directory_song_ids_cache[abs_path] = track_ids
     return track_ids
 
 
 def add_to_directory_song_archive(track_path: PurePath, track_id: str, author_name: str, track_name: str) -> None:
     """ Appends song_id to .song_ids file in directory """
-    
+    global directory_song_ids_cache
+
     if Zotify.CONFIG.get_disable_directory_archives():
         return
     
+    abs_path = str(track_path.parent.resolve())
+    if abs_path in directory_song_ids_cache:
+        directory_song_ids_cache[abs_path].add(track_id)
+
     hidden_file_path = track_path.parent / '.song_ids'
     # not checking if file exists because we need an exception
     # to be raised if something is wrong

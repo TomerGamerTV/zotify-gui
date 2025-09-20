@@ -11,6 +11,8 @@ from zotify.const import TRACKS, ALBUM, GENRES, NAME, DISC_NUMBER, TRACK_NUMBER,
     IS_PLAYABLE, ARTISTS, ARTIST_IDS, IMAGES, URL, RELEASE_DATE, ID, TRACK_URL, \
     CODEC_MAP, DURATION_MS, WIDTH, COMPILATION, ALBUM_TYPE, ARTIST_BULK_URL, YEAR, \
     ALBUM_ARTISTS, IMAGE_URL, EXPORT_M3U8, AudioKeyError, BULK_WAIT_TIME
+
+MAX_WAIT_TIME = 60
 from zotify.termoutput import Printer, PrintChannel, Loader
 from zotify.utils import fill_output_template, set_audio_tags, set_music_thumbnail, create_download_directory, \
     add_to_m3u8, fetch_m3u8_songs, get_directory_song_ids, add_to_directory_song_archive, \
@@ -306,10 +308,11 @@ def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict 
                             Printer.hashtaged(PrintChannel.WARNING, f"Audio key error (attempt {i + 1}/{attempts}). Retrying...")
                             Zotify.IS_RATE_LIMITED = True
                             current_wait_time = Zotify.CONFIG.get(BULK_WAIT_TIME) or 1
-                            Zotify.CONFIG.Values[BULK_WAIT_TIME] = current_wait_time + 1
+                            new_wait_time = min(current_wait_time + 2, MAX_WAIT_TIME)
+                            Zotify.CONFIG.Values[BULK_WAIT_TIME] = new_wait_time
                             Zotify.SUCCESSFUL_DOWNLOADS_SINCE_RATE_LIMIT = 0
-                            Printer.hashtaged(PrintChannel.WARNING, f"Increased BULK_WAIT_TIME to {Zotify.CONFIG.get(BULK_WAIT_TIME)} seconds.")
-                            time.sleep(Zotify.CONFIG.get(BULK_WAIT_TIME))
+                            Printer.hashtaged(PrintChannel.WARNING, f"Increased BULK_WAIT_TIME to {new_wait_time} seconds.")
+                            time.sleep(new_wait_time)
                         except Exception as e:
                             Printer.hashtaged(PrintChannel.ERROR, 'SKIPPING SONG - FAILED TO GET CONTENT STREAM\n' + f'Track_ID: {track_id}')
                             Printer.traceback(e)
@@ -334,15 +337,14 @@ def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict 
                             disable=not Zotify.CONFIG.get_show_download_pbar(),
                             pos=pos
                     ) as pbar:
-                        b = 0
-                        while b < 5:
-                        #for _ in range(int(total_size / Zotify.CONFIG.get_chunk_size()) + 2):
+                        while True:
                             data = stream.input_stream.stream().read(Zotify.CONFIG.get_chunk_size())
+                            if not data:
+                                break
                             pbar.update(file.write(data))
                             downloaded += len(data)
                             if progress_emitter:
                                 progress_emitter(downloaded, total_size, int(downloaded / total_size * 100))
-                            b += 1 if data == b'' else 0
                             if Zotify.CONFIG.get_download_real_time():
                                 delta_real = time.time() - time_start
                                 delta_want = (downloaded / total_size) * (track_metadata[DURATION_MS]/1000)
