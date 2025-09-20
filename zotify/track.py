@@ -382,7 +382,7 @@ def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict 
                     if Zotify.IS_RATE_LIMITED:
                         Zotify.SUCCESSFUL_DOWNLOADS_SINCE_RATE_LIMIT += 1
                         if Zotify.SUCCESSFUL_DOWNLOADS_SINCE_RATE_LIMIT >= 3:
-                            Printer.hashtaged(PrintChannel.INFO, "Three successful downloads, resetting BULK_WAIT_TIME.")
+                            Printer.hashtaged(PrintChannel.PROGRESS_INFO, "Three successful downloads, resetting BULK_WAIT_TIME.")
                             Zotify.CONFIG.Values[BULK_WAIT_TIME] = Zotify.USER_CONFIGURED_BULK_WAIT_TIME
                             Zotify.IS_RATE_LIMITED = False
                             Zotify.SUCCESSFUL_DOWNLOADS_SINCE_RATE_LIMIT = 0
