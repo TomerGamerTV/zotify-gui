@@ -11,7 +11,7 @@ from librespot.mercury import MercuryRequests
 from librespot.proto.Authentication_pb2 import AuthenticationType
 from pathlib import Path, PurePath
 from time import sleep
-from typing import Any, Callable
+from typing import Any, Callable, Union, Optional
 
 from zotify.const import *
 from zotify.const import AudioKeyError
@@ -222,7 +222,7 @@ class Config:
         return r
     
     @classmethod
-    def parse_config_jsonstr(cls, key_subset: tuple | dict | None = None) -> dict:
+    def parse_config_jsonstr(cls, key_subset: Optional[Union[tuple, dict]] = None) -> dict:
         d = {}
         if key_subset is None: key_subset = cls.Values
         for key in key_subset:
@@ -363,7 +363,7 @@ class Config:
         return credentials
     
     @classmethod
-    def get_temp_download_dir(cls) -> str | PurePath:
+    def get_temp_download_dir(cls) -> Union[str, PurePath]:
         if cls.get(TEMP_DOWNLOAD_DIR) == '':
             return ''
         temp_download_path: str = cls.get(TEMP_DOWNLOAD_DIR)
@@ -429,7 +429,7 @@ class Config:
         return cls.get(DISABLE_SONG_ARCHIVE)
     
     @classmethod
-    def get_lyrics_location(cls) -> PurePath | None:
+    def get_lyrics_location(cls) -> Optional[PurePath]:
         if cls.get(LYRICS_LOCATION) == '':
             # Use OUTPUT path as default location
             return None
@@ -504,7 +504,7 @@ class Config:
         return cls.get(ALWAYS_CHECK_LYRICS)
     
     @classmethod
-    def get_m3u8_location(cls) -> PurePath | None:
+    def get_m3u8_location(cls) -> Optional[PurePath]:
         if cls.get(M3U8_LOCATION) == '':
             # Use OUTPUT path as default location
             return None
@@ -525,7 +525,7 @@ class Config:
         return cls.get(DOWNLOAD_PARENT_ALBUM)
     
     @classmethod
-    def get_oauth_address(cls) -> tuple[str, str]:
+    def get_oauth_address(cls) -> str:
         redirect_address = cls.get(REDIRECT_ADDRESS)
         if redirect_address:
             return redirect_address
@@ -540,19 +540,19 @@ class Config:
         return cls.get(REGEX_ENABLED)
     
     @classmethod
-    def get_regex_album(cls) -> None | re.Pattern:
+    def get_regex_album(cls) -> Optional[re.Pattern]:
         if not (cls.get_regex_enabled() and cls.get(REGEX_ALBUM_SKIP)):
             return None
         return re.compile(cls.get(REGEX_ALBUM_SKIP), re.I)
     
     @classmethod
-    def get_regex_track(cls) -> None | re.Pattern:
+    def get_regex_track(cls) -> Optional[re.Pattern]:
         if not (cls.get_regex_enabled() and cls.get(REGEX_TRACK_SKIP)):
             return None
         return re.compile(cls.get(REGEX_TRACK_SKIP), re.I)
  
     @classmethod
-    def get_regex_episode(cls) -> None | re.Pattern:
+    def get_regex_episode(cls) -> Optional[re.Pattern]:
         if not (cls.get_regex_enabled() and cls.get(REGEX_EPISODE_SKIP)):
             return None
         return re.compile(cls.get(REGEX_EPISODE_SKIP), re.I)
