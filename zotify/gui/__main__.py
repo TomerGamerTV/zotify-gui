@@ -1,7 +1,7 @@
 import argparse
 
-from app import client
-from config import CONFIG_VALUES
+from ..app import client
+from ..config import CONFIG_VALUES
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='zspotify',
@@ -35,7 +35,7 @@ if __name__ == '__main__':
                        help='Downloads tracks, playlists and albums from the URLs written in the file passed.')
 
     for configkey in CONFIG_VALUES:
-        parser.add_argument(CONFIG_VALUES[configkey]['arg'],
+        parser.add_argument(*CONFIG_VALUES[configkey]['arg'],
                             type=str,
                             default=None,
                             help='Specify the value of the ['+configkey+'] config value')
