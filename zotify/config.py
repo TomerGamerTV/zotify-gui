@@ -689,7 +689,7 @@ class Zotify:
         }
     
     @classmethod
-    def invoke_url(cls, url: str, _params: dict | None = None, expectFail: bool = False) -> tuple[str, dict]:
+    def invoke_url(cls, url: str, _params: Optional[dict] = None, expectFail: bool = False) -> tuple[str, dict]:
         headers = cls.get_auth_header()
         
         tryCount = 0
