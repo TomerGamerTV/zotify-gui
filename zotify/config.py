@@ -731,7 +731,7 @@ class Zotify:
         return responsejson
     
     @classmethod
-    def invoke_url_nextable(cls, url: str, response_key: str = ITEMS, limit: int = 50, stripper: str | None = None, offset: int = 0) -> list[dict]:
+    def invoke_url_nextable(cls, url: str, response_key: str = ITEMS, limit: int = 50, stripper: Optional[str] = None, offset: int = 0) -> list[dict]:
         resp = cls.invoke_url_with_params(url, limit=limit, offset=offset)
         if stripper is not None:
             resp = resp[stripper]
