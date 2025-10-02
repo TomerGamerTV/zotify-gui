@@ -8,6 +8,7 @@ from music_tag.file import TAG_MAP_ENTRY
 from music_tag.mp4 import freeform_set
 from mutagen.id3 import TXXX
 from time import sleep
+from typing import Union, Optional
 from pathlib import Path, PurePath
 
 from zotify.config import Zotify
@@ -17,7 +18,7 @@ from zotify.termoutput import PrintChannel, Printer
 
 
 # Path Utils
-def create_download_directory(dir_path: str | PurePath) -> None:
+def create_download_directory(dir_path: Union[str, PurePath]) -> None:
     """ Create directory and add a hidden file with song ids """
     Path(dir_path).mkdir(parents=True, exist_ok=True)
     
@@ -30,7 +31,7 @@ def create_download_directory(dir_path: str | PurePath) -> None:
             pass
 
 
-def fix_filename(name: str | PurePath | Path ):
+def fix_filename(name: Union[str, PurePath, Path] ):
     """
     Replace invalid characters on Linux/Windows/MacOS with underscores.
     list from https://stackoverflow.com/a/31976060/819417
@@ -80,7 +81,7 @@ def fill_output_template(output_template: str, track_metadata: dict, extra_keys:
     return output_template, fix_filename(artists[0]) + ' - ' + fix_filename(name)
 
 
-def walk_directory_for_tracks(path: str | PurePath) -> set[Path]:
+def walk_directory_for_tracks(path: Union[str, PurePath]) -> set[Path]:
     # path must already exist
     track_paths = set()
     
@@ -94,7 +95,7 @@ def walk_directory_for_tracks(path: str | PurePath) -> set[Path]:
 
 # Input Processing Utils
 def regex_input_for_urls(search_input: str, non_global: bool = False) -> tuple[
-    str | None, str | None, str | None, str | None, str | None, str | None]:
+    Optional[str], Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]:
     """ Since many kinds of search may be passed at the command line, process them all here. """
     
     link_types = ("track", "album", "playlist", "episode", "show", "artist")
@@ -139,7 +140,7 @@ def split_sanitize_intrange(raw_input: str) -> list[int]:
 
 
 # Metadata Utils
-def conv_artist_format(artists: list[str], FORCE_NO_LIST: bool = False) -> list[str] | str:
+def conv_artist_format(artists: list[str], FORCE_NO_LIST: bool = False) -> Union[list[str], str]:
     """ Returns converted artist format """
     if Zotify.CONFIG.get_artist_delimiter() == "":
         # if len(artists) == 1:
@@ -149,7 +150,7 @@ def conv_artist_format(artists: list[str], FORCE_NO_LIST: bool = False) -> list[
         return Zotify.CONFIG.get_artist_delimiter().join(artists)
 
 
-def conv_genre_format(genres: list[str]) -> list[str] | str:
+def conv_genre_format(genres: list[str]) -> Union[list[str], str]:
     """ Returns converted genre format """
     if not Zotify.CONFIG.get_all_genres():
         return genres[0]
@@ -162,7 +163,7 @@ def conv_genre_format(genres: list[str]) -> list[str] | str:
         return Zotify.CONFIG.get_genre_delimiter().join(genres)
 
 
-def set_audio_tags(track_path: PurePath, track_metadata: dict, total_discs: str | None, genres: list[str], lyrics: list[str] | None) -> None:
+def set_audio_tags(track_path: PurePath, track_metadata: dict, total_discs: Optional[str], genres: list[str], lyrics: Optional[list[str]]) -> None:
     """ sets music_tag metadata """
     
     (scraped_track_id, track_name, artists, artist_ids, release_date, release_year, track_number, total_tracks,
@@ -266,7 +267,7 @@ def get_audio_tags(track_path: Path) -> tuple[tuple, tuple]:
            tuple(utag_vals)
 
 
-def compare_audio_tags(track_path: str | Path, reliable_tags: tuple, unreliable_tags: tuple) -> list | bool:
+def compare_audio_tags(track_path: Union[str, Path], reliable_tags: tuple, unreliable_tags: tuple) -> Union[list, bool]:
     """ Compares music_tag metadata to provided metadata, returns Truthy value if discrepancy is found """
     
     reliable_tags_onfile, unreliable_tags_onfile = get_audio_tags(track_path)
