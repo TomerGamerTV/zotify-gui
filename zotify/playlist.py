@@ -1,4 +1,5 @@
 from pathlib import PurePath, Path
+from typing import Optional
 
 from zotify.config import Zotify
 from zotify.const import USER_PLAYLISTS_URL, PLAYLIST_URL, ITEMS, ID, TRACK, NAME, TYPE, TRACKS
@@ -36,7 +37,7 @@ def get_playlist_info(playlist_id) -> tuple[str, str]:
     return resp['name'].strip(), resp['owner']['display_name'].strip()
 
 
-def download_playlist(progress_emitter, playlist: dict, pbar_stack: list | None = None):
+def download_playlist(progress_emitter, playlist: dict, pbar_stack: Optional[list] = None):
     """Downloads all the songs from a playlist"""
     playlist_num, playlist_tracks = get_playlist_songs(playlist[ID])
     

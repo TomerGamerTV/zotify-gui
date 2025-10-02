@@ -3,6 +3,7 @@ import platform
 from os import get_terminal_size, system
 from itertools import cycle
 from time import sleep
+from typing import Union, Optional
 from pprint import pformat
 from tabulate import tabulate
 from threading import Thread
@@ -48,7 +49,7 @@ class PrintCategory(Enum):
 
 
 LAST_PRINT: PrintCategory = PrintCategory.NONE
-ACTIVE_LOADER: Loader | None = None
+ACTIVE_LOADER: Optional[Loader] = None
 ACTIVE_PBARS: list[tqdm] = []
 
 
@@ -62,7 +63,7 @@ class Printer:
         return columns
     
     @staticmethod
-    def _api_shrink(obj: list | tuple | dict) -> dict:
+    def _api_shrink(obj: Union[list, tuple, dict]) -> dict:
         """ Shrinks API objects to remove data unnecessary data for debugging """
         
         def shrink(k: str) -> str:
@@ -162,7 +163,7 @@ class Printer:
         Printer.new_print(channel, pformat(obj, indent=2), category)
     
     @staticmethod
-    def debug(*msg: tuple[str | object]) -> None:
+    def debug(*msg) -> None:
         for m in msg:
             if isinstance(m, str):
                 Printer.new_print(PrintChannel.DEBUG, m, PrintCategory.DEBUG)
@@ -236,7 +237,7 @@ class Printer:
         return new_pbar
     
     @staticmethod
-    def refresh_all_pbars(pbar_stack: list[tqdm] | None, skip_pop: bool = False) -> None:
+    def refresh_all_pbars(pbar_stack: Optional[list[tqdm]], skip_pop: bool = False) -> None:
         for pbar in pbar_stack:
             pbar.refresh()
         
@@ -246,7 +247,7 @@ class Printer:
                 if not pbar_stack[-1].disable: ACTIVE_PBARS.pop()
     
     @staticmethod
-    def pbar_position_handler(default_pos: int, pbar_stack: list[tqdm] | None) -> tuple[int, list[tqdm]]:
+    def pbar_position_handler(default_pos: int, pbar_stack: Optional[list[tqdm]]) -> tuple[int, list[tqdm]]:
         pos = default_pos
         if pbar_stack:
             pos = -pbar_stack[-1].pos + (0 if pbar_stack[-1].disable else -2)

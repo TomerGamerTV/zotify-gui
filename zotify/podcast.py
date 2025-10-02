@@ -2,6 +2,7 @@ import time
 import ffmpy
 import subprocess
 from pathlib import PurePath, Path
+from typing import Optional, Union
 from librespot.metadata import EpisodeId
 
 from zotify.config import Zotify
@@ -10,7 +11,7 @@ from zotify.termoutput import PrintChannel, Printer, Loader
 from zotify.utils import create_download_directory, fix_filename, fmt_duration, wait_between_downloads
 
 
-def get_episode_info(episode_id: str) -> tuple[str | None, str | None, str | None]:
+def get_episode_info(episode_id: str) -> tuple[Optional[str], Optional[str], Optional[str]]:
     with Loader(PrintChannel.PROGRESS_INFO, "Fetching episode information..."):
         (raw, resp) = Zotify.invoke_url(f'{EPISODE_URL}/{episode_id}')
     if not resp:
@@ -53,7 +54,7 @@ def download_podcast_directly(url, filename):
     return path
 
 
-def download_show(show_id, pbar_stack: list | None = None):
+def download_show(show_id, pbar_stack: Optional[list] = None):
     episode_ids = get_show_episode_ids(show_id)
     
     pos, pbar_stack = Printer.pbar_position_handler(3, pbar_stack)
@@ -67,7 +68,7 @@ def download_show(show_id, pbar_stack: list | None = None):
         Printer.refresh_all_pbars(pbar_stack)
 
 
-def download_episode(episode_id, pbar_stack: list | None = None) -> None:
+def download_episode(episode_id, pbar_stack: Optional[list] = None) -> None:
     
     podcast_name, duration_ms, episode_name = get_episode_info(episode_id)
     

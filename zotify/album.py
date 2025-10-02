@@ -1,3 +1,4 @@
+from typing import Optional
 from zotify.config import Zotify
 from zotify.const import ALBUM_URL, ARTIST_URL, ITEMS, ARTISTS, NAME, ID, DISC_NUMBER, ALBUM_TYPE, COMPILATION, AVAIL_MARKETS
 from zotify.termoutput import Printer, PrintChannel, Loader
@@ -31,7 +32,7 @@ def get_artist_album_ids(artist_id):
     return [album[ID] for album in simple_albums]
 
 
-def download_artist_albums(progress_emitter, artist, pbar_stack: list | None = None):
+def download_artist_albums(progress_emitter, artist, pbar_stack: Optional[list] = None):
     """ Downloads albums of an artist """
     album_ids = get_artist_album_ids(artist)
     
@@ -48,7 +49,7 @@ def download_artist_albums(progress_emitter, artist, pbar_stack: list | None = N
             progress_emitter.emit(i + 1, len(album_ids), int((i + 1) / len(album_ids) * 100))
 
 
-def download_album(progress_emitter, album_id: str, pbar_stack: list | None = None, M3U8_bypass: str | None = None) -> bool:
+def download_album(progress_emitter, album_id: str, pbar_stack: Optional[list] = None, M3U8_bypass: Optional[str] = None) -> bool:
     """ Downloads songs from an album """
     album_name, album_artists, tracks, total_discs, compilation = get_album_info(album_id)
     char_num = max({len(str(len(tracks))), 2})

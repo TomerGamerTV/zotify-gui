@@ -2,6 +2,7 @@ import time
 import uuid
 import ffmpy
 from queue import Empty
+from typing import Union, Optional
 from pathlib import Path, PurePath
 from librespot.metadata import TrackId
 
@@ -20,8 +21,8 @@ from zotify.utils import fill_output_template, set_audio_tags, set_music_thumbna
     conv_genre_format, compare_audio_tags, fix_filename
 
 
-def parse_track_metadata(track_resp: dict) -> dict[str, list[str] | str | int | bool]:
-    track_metadata: dict[str, list[str] | str | int | bool] = {}
+def parse_track_metadata(track_resp: dict) -> dict[str, Union[list[str], str, int, bool]]:
+    track_metadata: dict[str, Union[list[str], str, int, bool]] = {}
     
     # track_metadata unpack to individual variables
     # (scraped_track_id, track_name, artists, artist_ids, release_date, release_year, track_number, total_tracks,
@@ -50,7 +51,7 @@ def parse_track_metadata(track_resp: dict) -> dict[str, list[str] | str | int | 
     return track_metadata
 
 
-def get_track_metadata(track_id) -> dict[str, list[str] | str | int | bool]:
+def get_track_metadata(track_id) -> dict[str, Union[list[str], str, int, bool]]:
     """ Retrieves metadata for downloaded songs """
     wait_between_downloads()
     with Loader(PrintChannel.PROGRESS_INFO, "Fetching track information..."):
@@ -114,7 +115,7 @@ def get_track_lyrics(track_id: str) -> list[str]:
     raise ValueError(f'Failed to fetch lyrics: {track_id}')
 
 
-def handle_lyrics(track_id: str, filedir: PurePath, track_metadata: dict) -> list[str] | None:
+def handle_lyrics(track_id: str, filedir: PurePath, track_metadata: dict) -> Optional[list[str]]:
     lyrics = None
     if not Zotify.CONFIG.get_download_lyrics() and not Zotify.CONFIG.get_always_check_lyrics():
         return lyrics
@@ -179,7 +180,7 @@ def update_track_metadata(track_id: str, track_path: Path, track_resp: dict) -> 
         Printer.traceback(e)
 
 
-def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict | None = None, pbar_stack: list | None = None) -> None:
+def download_track(progress_emitter, mode: str, track_id: str, extra_keys: Optional[dict] = None, pbar_stack: Optional[list] = None) -> None:
     """ Downloads raw song audio content stream"""
 
     if Zotify.CONFIG.get_skip_previously_downloaded():
@@ -260,7 +261,7 @@ def download_track(progress_emitter, mode: str, track_id: str, extra_keys: dict 
             
             liked_m3u8 = child_request_mode == "liked" and Zotify.CONFIG.get_liked_songs_archive_m3u8()
             if Zotify.CONFIG.get_export_m3u8() and track_id == child_request_id:
-                m3u8_path: PurePath | None = extra_keys['m3u8_path'] if 'm3u8_path' in extra_keys else None
+                m3u8_path: Optional[PurePath] = extra_keys['m3u8_path'] if 'm3u8_path' in extra_keys else None
                 if liked_m3u8:
                     m3u8_path = filedir / "Liked Songs.m3u8"
                     songs_m3u = fetch_m3u8_songs(m3u8_path)
