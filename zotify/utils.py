@@ -479,7 +479,7 @@ def add_to_directory_song_archive(track_path: PurePath, track_id: str, author_na
 
 
 # Playlist File Utils
-def add_to_m3u8(duration_ms: int, track_name: str, track_path: PurePath, m3u8_path: PurePath | None) -> str | None:
+def add_to_m3u8(duration_ms: int, track_name: str, track_path: PurePath, m3u8_path: Optional[PurePath]) -> Optional[str]:
     """ Adds song to a .m3u8 playlist, returning the song label in m3u8 format"""
     
     if m3u8_path is None:
@@ -509,7 +509,7 @@ def add_to_m3u8(duration_ms: int, track_name: str, track_path: PurePath, m3u8_pa
     return track_label_m3u
 
 
-def fetch_m3u8_songs(m3u8_path: PurePath) -> list[str] | None:
+def fetch_m3u8_songs(m3u8_path: PurePath) -> Optional[list[str]]:
     """ Fetches the songs and associated file paths in an .m3u8 playlist"""
     
     if not Path(m3u8_path).exists():
