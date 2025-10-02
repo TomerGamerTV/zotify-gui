@@ -1,5 +1,5 @@
 from zotify.config import Zotify
-from zotify.const import SEARCH_URL
+from zotify.const import SEARCH_URL, USER_PLAYLISTS_URL, ITEMS
 
 def search(query: str, search_type: str = 'track,album,artist,playlist', limit: int = 20, offset: int = 0):
     """
@@ -63,3 +63,12 @@ def get_local_songs(path):
         except Exception as e:
             print(f"Error reading metadata for {file_path}: {e}")
     return songs
+
+def get_user_playlists(limit=50, offset=0):
+    """
+    Retrieves the current user's playlists.
+    """
+    if not Zotify.SESSION:
+        raise Exception("Not logged in.")
+
+    return Zotify.invoke_url_nextable(USER_PLAYLISTS_URL, ITEMS, limit)

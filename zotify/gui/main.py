@@ -27,6 +27,9 @@ from zotify.track import download_track
 from zotify.album import download_album
 from zotify.playlist import download_playlist
 from zotify.gui.settings_dialog import SettingsDialog
+from datetime import datetime
+from zotify.playlist import get_playlist_full_items
+from zotify.const import TRACK, ID
 
 def main():
     app = QApplication(sys.argv)
@@ -82,6 +85,49 @@ class Window(QMainWindow, Ui_MainWindow):
         self.refresh_liked_btn = QtWidgets.QPushButton("Refresh")
         self.refresh_liked_btn.clicked.connect(self.on_refresh_liked_clicked)
         self.likedTab.layout().addWidget(self.refresh_liked_btn)
+
+        # Liked search bar
+        self.likedSearch = QLineEdit()
+        self.likedSearch.setPlaceholderText("Search liked songs...")
+        self.likedTab.layout().insertWidget(0, self.likedSearch)
+        self.likedSearch.textChanged.connect(self.filter_liked_songs)
+
+        # Set headers and sorting for likedTree
+        self.likedTree.setHeaderLabels(["Name", "Artist", "Album", "Added Date", "Release Date"])
+        self.likedTree.setSortingEnabled(True)
+
+        # Playlists tab setup
+        self.playlistsTab = QtWidgets.QWidget()
+        self.playlistsTab.setObjectName("playlistsTab")
+        playlists_layout = QtWidgets.QVBoxLayout(self.playlistsTab)
+
+        self.playlistsSearch = QLineEdit()
+        self.playlistsSearch.setPlaceholderText("Search playlists and songs...")
+        playlists_layout.addWidget(self.playlistsSearch)
+        self.playlistsSearch.textChanged.connect(self.filter_user_playlists)
+
+        self.userPlaylistsTree = QtWidgets.QTreeWidget(self.playlistsTab)
+        self.userPlaylistsTree.setObjectName("userPlaylistsTree")
+        self.userPlaylistsTree.setHeaderLabels(["Name", "Owner", "Tracks", "Added Date", "Release Date"])
+        self.userPlaylistsTree.setSortingEnabled(True)
+        playlists_layout.addWidget(self.userPlaylistsTree)
+
+        self.loadingPlaylistsLabel = QtWidgets.QLabel("Loading, please wait...")
+        self.loadingPlaylistsLabel.setAlignment(QtCore.Qt.AlignCenter)
+        playlists_layout.addWidget(self.loadingPlaylistsLabel)
+        self.loadingPlaylistsLabel.hide()
+
+        self.refresh_playlists_btn = QtWidgets.QPushButton("Refresh")
+        self.refresh_playlists_btn.clicked.connect(self.on_refresh_playlists_clicked)
+        playlists_layout.addWidget(self.refresh_playlists_btn)
+
+        self.libraryTabs.addTab(self.playlistsTab, "Your Playlists")
+
+        self.userPlaylistsTree.itemExpanded.connect(self.on_playlist_expanded)
+        self.userPlaylistsTree.itemSelectionChanged.connect(self.on_item_selection_changed)
+
+        # Caches
+        self.user_playlists_cache = None
 
     def on_refresh_liked_clicked(self):
         self.liked_songs_cache = None
@@ -195,10 +241,12 @@ class Window(QMainWindow, Ui_MainWindow):
                     QThreadPool.globalInstance().start(worker)
 
     def on_library_tab_changed(self, index):
-        if index == 0: # Downloaded Songs Tab
+        if index == 0:  # Downloaded Songs Tab
             self.load_downloaded_songs()
-        elif index == 1: # Liked Songs Tab
+        elif index == 1:  # Liked Songs Tab
             self.load_liked_songs()
+        elif index == 2:  # Your Playlists Tab
+            self.load_user_playlists()
 
     def load_downloaded_songs(self):
         self.downloadedTree.clear()
@@ -241,8 +289,14 @@ class Window(QMainWindow, Ui_MainWindow):
         for track_item in results:
             track = track_item['track']
             artists = ", ".join([artist['name'] for artist in track['artists']])
-            item = QTreeWidgetItem([track['name'], artists, track['album']['name']])
-            item.setData(0, QtCore.Qt.UserRole, track)
+            added_at_str = datetime.fromisoformat(track_item['added_at'].replace('Z', '+00:00')).strftime('%Y-%m-%d')
+            release_date = track['album'].get('release_date', 'Unknown')
+            if release_date and len(release_date) >= 4:
+                release_date = release_date[:4]
+            else:
+                release_date = ''
+            item = QTreeWidgetItem([track['name'], artists, track['album']['name'], added_at_str, release_date])
+            item.setData(0, QtCore.Qt.UserRole, {'type': 'track', **track, 'added_at': track_item['added_at']})
             self.likedTree.addTopLevelItem(item)
 
     def display_liked_songs_error(self, error):
@@ -443,6 +497,95 @@ class Window(QMainWindow, Ui_MainWindow):
                             self.infoLabel6]
         self.info_headers = [self.infoHeader1, self.infoHeader2, self.infoHeader3, self.infoHeader4, self.infoHeader5,
                              self.infoHeader6]
+
+    def filter_liked_songs(self, text):
+        text = text.lower()
+        for i in range(self.likedTree.topLevelItemCount()):
+            item = self.likedTree.topLevelItem(i)
+            visible = any(text in str(item.text(c)).lower() for c in range(item.columnCount()))
+            item.setHidden(not visible)
+
+    def on_refresh_playlists_clicked(self):
+        self.user_playlists_cache = None
+        self.load_user_playlists()
+
+    def load_user_playlists(self):
+        self.userPlaylistsTree.clear()
+
+        if self.user_playlists_cache is not None:
+            self.display_user_playlists(self.user_playlists_cache)
+            return
+
+        self.userPlaylistsTree.hide()
+        self.loadingPlaylistsLabel.setText("Loading, please wait...")
+        self.loadingPlaylistsLabel.show()
+        self.refresh_playlists_btn.setEnabled(False)
+
+        from zotify import api
+        worker = Worker(api.get_user_playlists)
+        worker.signals.result.connect(self.display_user_playlists)
+        worker.signals.error.connect(self.on_playlists_error)
+        QThreadPool.globalInstance().start(worker)
+
+    def display_user_playlists(self, playlists):
+        self.user_playlists_cache = playlists
+        self.loadingPlaylistsLabel.hide()
+        self.userPlaylistsTree.show()
+        self.refresh_playlists_btn.setEnabled(True)
+        self.userPlaylistsTree.clear()
+        for playlist in playlists:
+            owner = playlist['owner']['display_name']
+            total = str(playlist['tracks']['total'])
+            item = QTreeWidgetItem([playlist['name'], owner, total, '', ''])
+            item.setData(0, QtCore.Qt.UserRole, {'type': 'playlist', **playlist})
+            self.userPlaylistsTree.addTopLevelItem(item)
+
+    def on_playlists_error(self, error):
+        self.loadingPlaylistsLabel.setText("Error loading playlists. Please try again later.")
+        self.refresh_playlists_btn.setEnabled(True)
+        print("Error loading playlists:", error)
+
+    def on_playlist_expanded(self, item):
+        if item.childCount() > 0:
+            return
+        playlist_data = item.data(0, QtCore.Qt.UserRole)
+        playlist_id = playlist_data['id']
+        from zotify.playlist import get_playlist_full_items
+        worker = Worker(get_playlist_full_items, playlist_id)
+        worker.signals.result.connect(lambda res: self.display_playlist_songs(item, res))
+        worker.signals.error.connect(lambda e: print("Error loading playlist songs:", e))
+        QThreadPool.globalInstance().start(worker)
+
+    def display_playlist_songs(self, parent_item, full_items):
+        for full_item in full_items:
+            if full_item.get('episode'):
+                continue  # Skip episodes for now
+            track = full_item[TRACK]
+            artists = ", ".join([artist['name'] for artist in track['artists']])
+            added_at_str = datetime.fromisoformat(full_item['added_at'].replace('Z', '+00:00')).strftime('%Y-%m-%d')
+            release_date = track['album'].get('release_date', 'Unknown')
+            if release_date and len(release_date) >= 4:
+                release_date = release_date[:4]
+            else:
+                release_date = ''
+            child = QTreeWidgetItem([track['name'], artists, track['album']['name'], added_at_str, release_date])
+            child.setData(0, QtCore.Qt.UserRole, {'type': 'track', **track, 'added_at': full_item['added_at']})
+            parent_item.addChild(child)
+
+    def filter_user_playlists(self, text):
+        text = text.lower()
+        def is_visible(item):
+            match = any(text in str(item.text(c)).lower() for c in range(item.columnCount()))
+            has_visible_child = False
+            for child_idx in range(item.childCount()):
+                child = item.child(child_idx)
+                if is_visible(child):
+                    has_visible_child = True
+                    child.setHidden(False)
+            item.setHidden(not (match or has_visible_child))
+            return match or has_visible_child
+        for i in range(self.userPlaylistsTree.topLevelItemCount()):
+            is_visible(self.userPlaylistsTree.topLevelItem(i))
 
 
 class LoginDialog(QDialog, Ui_LoginDialog):

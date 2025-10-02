@@ -126,3 +126,15 @@ def download_from_user_playlist(progress_emitter):
         download_playlist(progress_emitter, playlist, pbar_stack)
         pbar.set_description(playlist[NAME].strip())
         Printer.refresh_all_pbars(pbar_stack)
+
+
+def get_playlist_full_items(playlist_id: str) -> list[dict]:
+    """ Returns full playlist items with added_at and track/episode for GUI """
+    
+    playlist_tracks = Zotify.invoke_url_nextable(f'{PLAYLIST_URL}/{playlist_id}/{TRACKS}', ITEMS, 100)
+    
+    playlist_tracks.sort(key=lambda s: strptime_utc(s['added_at']))
+    
+    full_items = [item for item in playlist_tracks if item.get(TRACK, {}).get(ID) or item.get('episode', {}).get(ID)]
+    
+    return full_items
