@@ -9,3 +9,4 @@ pwinput
 tabulate[widechars]
 tqdm
 mutagen
+requests
