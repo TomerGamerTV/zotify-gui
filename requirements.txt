@@ -1,5 +1,6 @@
+# Update librespot to the latest version to fix the download issue.
 ffmpy
-git+https://github.com/kokarare1212/librespot-python.git
+git+https://github.com/kokarare1212/librespot-python.git@8760279c64230607d418d72b028e8f9b8ba7525e
 music_tag
 Pillow
 pkce
