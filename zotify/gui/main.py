@@ -121,13 +121,23 @@ class Window(QMainWindow, Ui_MainWindow):
         self.refresh_playlists_btn.clicked.connect(self.on_refresh_playlists_clicked)
         playlists_layout.addWidget(self.refresh_playlists_btn)
 
+        self.playlistSpecificSearch = QLineEdit()
+        self.playlistSpecificSearch.setPlaceholderText("Search in selected playlist...")
+        self.playlistSpecificSearch.hide()  # Hidden by default
+        playlists_layout.addWidget(self.playlistSpecificSearch)
+        self.playlistSpecificSearch.textChanged.connect(self.filter_selected_playlist)
+
         self.libraryTabs.addTab(self.playlistsTab, "Your Playlists")
 
         self.userPlaylistsTree.itemExpanded.connect(self.on_playlist_expanded)
         self.userPlaylistsTree.itemSelectionChanged.connect(self.on_item_selection_changed)
+        self.userPlaylistsTree.itemDoubleClicked.connect(self.on_playlist_double_clicked)
 
         # Caches
         self.user_playlists_cache = None
+
+        # Connect item selection changes to show/hide specific search
+        self.userPlaylistsTree.itemSelectionChanged.connect(self.on_playlist_selection_changed)
 
     def on_refresh_liked_clicked(self):
         self.liked_songs_cache = None
@@ -236,6 +246,22 @@ class Window(QMainWindow, Ui_MainWindow):
 
             if data.get('images'):
                 image_url = data['images'][0].get('url')
+                if image_url:
+                    worker = Worker(set_label_image, self.coverArtLabel, image_url, from_url=True)
+                    QThreadPool.globalInstance().start(worker)
+
+        elif item_type == 'episode':
+            self.infoHeader1.setText("Episode: ")
+            self.infoLabel1.setText(data.get('name', 'N/A'))
+            self.infoHeader2.setText("Show: ")
+            self.infoLabel2.setText(data.get('show', {}).get('name', 'N/A'))
+            self.infoHeader3.setText("Description: ")
+            self.infoLabel3.setText(data.get('description', 'N/A')[:100] + '...' if len(data.get('description', '')) > 100 else data.get('description', 'N/A'))
+            self.infoHeader4.setText("Release Date: ")
+            self.infoLabel4.setText(data.get('release_date', 'N/A'))
+
+            if data.get('show') and data['show'].get('images'):
+                image_url = data['show']['images'][0].get('url')
                 if image_url:
                     worker = Worker(set_label_image, self.coverArtLabel, image_url, from_url=True)
                     QThreadPool.globalInstance().start(worker)
@@ -478,6 +504,11 @@ class Window(QMainWindow, Ui_MainWindow):
             worker = Worker(download_playlist, item_data, [], update=self.update_progress_bar, signals=MusicSignals())
             worker.signals.finished.connect(self.on_download_finished)
             QThreadPool.globalInstance().start(worker)
+        elif item_type == 'episode':
+            from zotify.podcast import download_episode
+            worker = Worker(download_episode, item_data['id'])
+            worker.signals.finished.connect(self.on_download_finished)
+            QThreadPool.globalInstance().start(worker)
 
     def on_download_finished(self):
         self.completed_downloads += 1
@@ -538,6 +569,7 @@ class Window(QMainWindow, Ui_MainWindow):
             total = str(playlist['tracks']['total'])
             item = QTreeWidgetItem([playlist['name'], owner, total, '', ''])
             item.setData(0, QtCore.Qt.UserRole, {'type': 'playlist', **playlist})
+            item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
             self.userPlaylistsTree.addTopLevelItem(item)
 
     def on_playlists_error(self, error):
@@ -558,18 +590,33 @@ class Window(QMainWindow, Ui_MainWindow):
 
     def display_playlist_songs(self, parent_item, full_items):
         for full_item in full_items:
-            if full_item.get('episode'):
-                continue  # Skip episodes for now
-            track = full_item[TRACK]
-            artists = ", ".join([artist['name'] for artist in track['artists']])
             added_at_str = datetime.fromisoformat(full_item['added_at'].replace('Z', '+00:00')).strftime('%Y-%m-%d')
-            release_date = track['album'].get('release_date', 'Unknown')
-            if release_date and len(release_date) >= 4:
-                release_date = release_date[:4]
+            if full_item.get(TRACK) and full_item[TRACK].get(ID):
+                track = full_item[TRACK]
+                item_type = 'track'
+                artists = ", ".join([artist['name'] for artist in track.get('artists', []) if artist is not None])
+                album = track['album']['name']
+                release_date = track['album'].get('release_date', 'Unknown')
+                if release_date and len(release_date) >= 4:
+                    release_date = release_date[:4]
+                else:
+                    release_date = ''
+                child = QTreeWidgetItem([track['name'], artists, album, added_at_str, release_date])
+                child.setData(0, QtCore.Qt.UserRole, {'type': item_type, **track, 'added_at': full_item['added_at']})
+            elif full_item.get('episode') and full_item['episode'].get(ID):
+                episode = full_item['episode']
+                item_type = 'episode'
+                show = episode.get('show', {}).get('name', 'Unknown Show')
+                description_snippet = episode.get('description', '')[:50] + '...' if len(episode.get('description', '')) > 50 else episode.get('description', '')
+                release_date = episode.get('release_date', 'Unknown')
+                if release_date and len(release_date) >= 4:
+                    release_date = release_date[:4]
+                else:
+                    release_date = ''
+                child = QTreeWidgetItem([episode['name'], show, description_snippet, added_at_str, release_date])
+                child.setData(0, QtCore.Qt.UserRole, {'type': item_type, **episode, 'added_at': full_item['added_at']})
             else:
-                release_date = ''
-            child = QTreeWidgetItem([track['name'], artists, track['album']['name'], added_at_str, release_date])
-            child.setData(0, QtCore.Qt.UserRole, {'type': 'track', **track, 'added_at': full_item['added_at']})
+                continue
             parent_item.addChild(child)
 
     def filter_user_playlists(self, text):
@@ -586,6 +633,35 @@ class Window(QMainWindow, Ui_MainWindow):
             return match or has_visible_child
         for i in range(self.userPlaylistsTree.topLevelItemCount()):
             is_visible(self.userPlaylistsTree.topLevelItem(i))
+
+    def on_playlist_double_clicked(self, item, column):
+        if item.childCount() > 0:
+            # Already expanded: collapse it
+            item.setExpanded(False)
+        else:
+            # Not expanded: expand and load if needed
+            item.setExpanded(True)
+
+    def on_playlist_selection_changed(self):
+        selected = self.userPlaylistsTree.selectedItems()
+        if selected and selected[0].parent() is None:  # Top-level playlist selected
+            self.filter_mode = selected[0]
+            self.playlistSpecificSearch.show()
+        else:
+            self.filter_mode = None
+            self.playlistSpecificSearch.hide()
+            self.playlistSpecificSearch.clear()
+
+    def filter_selected_playlist(self, text):
+        if not self.filter_mode:
+            return
+        text = text.lower()
+        # Filter only children of self.filter_mode
+        for i in range(self.filter_mode.childCount()):
+            child = self.filter_mode.child(i)
+            visible = any(text in str(child.text(c)).lower() for c in range(child.columnCount()))
+            child.setHidden(not visible)
+        # Hide/show parent based on children, but since parent is always visible when selected, no need
 
 
 class LoginDialog(QDialog, Ui_LoginDialog):

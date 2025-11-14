@@ -662,15 +662,22 @@ class Zotify:
             'very_high': AudioQuality.VERY_HIGH,
         }
         audio_quality = quality_map.get(quality, AudioQuality.NORMAL)
-
-        try:
-            return cls.SESSION.content_feeder().load(content_id, VorbisOnlyAudioQuality(audio_quality), False, None)
-        except RuntimeError as e:
-            if 'Failed fetching audio key!' in e.args[0]:
-                gid, fileid = e.args[0].split('! ')[1].split(', ')
-                raise AudioKeyError(f'Failed to fetch audio key for GID: {gid[5:]} - File_ID: {fileid[8:]}')
-            else:
+        candidates = [audio_quality, AudioQuality.HIGH, AudioQuality.NORMAL]
+        seen = set()
+        for q in candidates:
+            if q in seen:
+                continue
+            seen.add(q)
+            try:
+                return cls.SESSION.content_feeder().load(content_id, VorbisOnlyAudioQuality(q), False, None)
+            except RuntimeError as e:
+                if 'Failed fetching audio key!' in e.args[0]:
+                    gid, fileid = e.args[0].split('! ')[1].split(', ')
+                    raise AudioKeyError(f'Failed to fetch audio key for GID: {gid[5:]} - File_ID: {fileid[8:]}')
+                if 'Cannot get alternative track' in e.args[0]:
+                    continue
                 raise e
+        raise RuntimeError('Cannot get alternative track')
     
     @classmethod
     def __get_auth_token(cls):

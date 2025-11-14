@@ -1,5 +1,6 @@
 from pathlib import PurePath, Path
 from typing import Optional
+from datetime import datetime
 
 from zotify.config import Zotify
 from zotify.const import USER_PLAYLISTS_URL, PLAYLIST_URL, ITEMS, ID, TRACK, NAME, TYPE, TRACKS
@@ -133,8 +134,30 @@ def get_playlist_full_items(playlist_id: str) -> list[dict]:
     
     playlist_tracks = Zotify.invoke_url_nextable(f'{PLAYLIST_URL}/{playlist_id}/{TRACKS}', ITEMS, 100)
     
-    playlist_tracks.sort(key=lambda s: strptime_utc(s['added_at']))
+    # Filter out None items first
+    playlist_tracks = [item for item in playlist_tracks if item is not None]
     
-    full_items = [item for item in playlist_tracks if item.get(TRACK, {}).get(ID) or item.get('episode', {}).get(ID)]
+    # Now sort safely
+    def safe_sort_key(item):
+        if item is None:
+            return datetime.min
+        added_at = item.get('added_at', '')
+        try:
+            return strptime_utc(added_at)
+        except:
+            return datetime.min  # or some default
+    
+    playlist_tracks.sort(key=safe_sort_key)
+    
+    full_items = []
+    for item in playlist_tracks:
+        if item is None:
+            continue
+        try:
+            if item.get(TRACK, {}).get(ID) or item.get('episode', {}).get(ID):
+                full_items.append(item)
+        except AttributeError:
+            # Skip any non-dict items that cause issues
+            continue
     
     return full_items
